@@ -1,0 +1,126 @@
+@startuml
+title Успешный сценарий: Создание заявки и формирование группы
+
+actor "Координатор" as Coord
+participant "API Gateway" as Gateway
+participant "Request Service" as ReqSvc
+participant "Geo Planning\nService" as Geo
+database "PostgreSQL" as DB
+participant "Group Service" as GroupSvc
+queue "Event Bus\n(RabbitMQ)" as Bus
+participant "Notification\nWorker" as NotifyWorker
+participant "SMS Service\n(Twilio)" as SMS
+
+== Транзакция №1: Создание заявки ==
+
+Coord -> Gateway: POST /api/requests\n{name: "Иван Петров",\nlat: 53.9045, lon: 27.5615,\nradius: 5km, urgency: "URGENT"}
+activate Gateway
+
+Gateway -> Gateway: Аутентификация\nи авторизация
+Gateway -> ReqSvc: Пересылка запроса
+activate ReqSvc
+
+ReqSvc -> ReqSvc: Валидация данных\n(координаты, радиус)
+
+ReqSvc -> Geo: splitIntoZones(lat, lon, radius)
+activate Geo
+Geo -> Geo: Алгоритм разбиения\nтерритории
+Geo --> ReqSvc: [Zone-N, Zone-S,\nZone-E, Zone-W]
+deactivate Geo
+
+ReqSvc -> DB: BEGIN TRANSACTION
+activate DB
+
+ReqSvc -> DB: INSERT INTO requests\n(id, name, coordinates, status)\nVALUES ('REQ-2024-0142', ...)
+DB --> ReqSvc: OK
+
+ReqSvc -> DB: INSERT INTO zones\n(Zone-N, Zone-S, Zone-E, Zone-W)\nFOR request_id='REQ-2024-0142'
+DB --> ReqSvc: OK
+
+ReqSvc -> DB: COMMIT TRANSACTION
+DB --> ReqSvc: Committed
+deactivate DB
+
+ReqSvc -> Bus: publish(RequestCreated,\nrequest_id='REQ-2024-0142')
+activate Bus
+Bus --> ReqSvc: ACK
+deactivate Bus
+
+ReqSvc --> Gateway: 201 Created\n{request_id: "REQ-2024-0142",\nzones: [Z-001, Z-002, Z-003, Z-004]}
+deactivate ReqSvc
+
+Gateway --> Coord: 201 Created\n{request_id, zones}
+deactivate Gateway
+
+== Транзакция №2: Формирование группы ==
+
+Coord -> Gateway: POST /api/groups\n{request_id: "REQ-2024-0142",\nzone_id: "Z-001",\nmembers: [V1, V2, V3, V4]}
+activate Gateway
+
+Gateway -> GroupSvc: Пересылка запроса
+activate GroupSvc
+
+GroupSvc -> DB: BEGIN TRANSACTION
+activate DB
+
+GroupSvc -> DB: SELECT * FROM volunteers\nWHERE id IN (V1,V2,V3,V4)\nAND status='AVAILABLE'\nFOR UPDATE
+DB --> GroupSvc: 4 волонтёра\nдоступны
+
+GroupSvc -> DB: INSERT INTO groups\n(id, request_id, status)\nVALUES ('G-42', 'REQ-2024-0142', 'FORMING')
+DB --> GroupSvc: OK
+
+GroupSvc -> DB: INSERT INTO group_members\n(group_id='G-42', members=[V1,V2,V3,V4])
+DB --> GroupSvc: OK
+
+GroupSvc -> DB: UPDATE volunteers\nSET status='BUSY'\nWHERE id IN (V1,V2,V3,V4)
+DB --> GroupSvc: OK
+
+GroupSvc -> DB: UPDATE zones\nSET assigned_group_id='G-42',\nstatus='ASSIGNED'\nWHERE id='Z-001'
+DB --> GroupSvc: OK
+
+GroupSvc -> DB: UPDATE requests\nSET status='IN_PROGRESS'\nWHERE id='REQ-2024-0142'
+DB --> GroupSvc: OK
+
+GroupSvc -> DB: COMMIT TRANSACTION
+DB --> GroupSvc: Committed
+deactivate DB
+
+GroupSvc -> Bus: publish(GroupFormed,\ngroup_id='G-42')
+activate Bus
+Bus --> GroupSvc: ACK
+
+GroupSvc -> Bus: publish(GroupAssignedToZone,\ngroup_id='G-42', zone_id='Z-001')
+Bus --> GroupSvc: ACK
+deactivate Bus
+
+GroupSvc --> Gateway: 201 Created\n{group_id: "G-42",\nzone: "Z-001"}
+deactivate GroupSvc
+
+Gateway --> Coord: 201 Created\n{group_id, zone}
+deactivate Gateway
+
+== Асинхронная отправка уведомлений ==
+
+Bus -> NotifyWorker: consume(GroupFormed)
+activate NotifyWorker
+
+NotifyWorker -> NotifyWorker: Формирование\nсписка получателей
+
+NotifyWorker -> SMS: sendSMS(leader,\n"Вы назначены старшим группы G-42.\nКоординаты: 53.9095, 27.5615")
+activate SMS
+SMS --> NotifyWorker: Message-ID: msg-123\nStatus: sent
+deactivate SMS
+
+NotifyWorker -> SMS: sendBulkSMS(volunteers,\n"Вы включены в группу G-42")
+activate SMS
+SMS --> NotifyWorker: 3 SMS отправлены
+deactivate SMS
+
+NotifyWorker -> DB: UPDATE notification_queue\nSET status='delivered'
+activate DB
+DB --> NotifyWorker: OK
+deactivate DB
+
+deactivate NotifyWorker
+
+@enduml

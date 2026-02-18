@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package pso;
+
+// ========================================
+// Messages (Data Models)
+// Предметная область: ПСО «Юго-Запад»
+// ========================================
+
+message Zone {
+  string name = 1;             // "North", "South", "East", "West"
+  float lat_min = 2;           // 52.0
+  float lat_max = 3;           // 52.5
+  float lon_min = 4;           // 23.5
+  float lon_max = 5;           // 24.0
+}
+
+message Request {
+  string request_id = 1;       // "REQ-2024-0001"
+  string coordinator_id = 2;   // "COORD-1"
+  Zone zone = 3;               // Зона поиска
+  string status = 4;           // "DRAFT", "ACTIVE", "COMPLETED"
+  string assigned_group_id = 5; // "G-01" (опционально)
+  int64 created_at = 6;        // Unix timestamp (seconds)
+  int64 activated_at = 7;      // Unix timestamp (опционально)
+  int64 completed_at = 8;      // Unix timestamp (опционально)
+}
+
+// ========================================
+// Request/Response Messages
+// ========================================
+
+// --- CreateRequest ---
+message CreateRequestRequest {
+  string coordinator_id = 1;
+  Zone zone = 2;
+}
+
+message CreateRequestResponse {
+  string request_id = 1;
+  string status = 2;           // "SUCCESS", "ERROR"
+  string error_message = 3;
+}
+
+// --- GetRequest ---
+message GetRequestRequest {
+  string request_id = 1;
+}
+
+message GetRequestResponse {
+  Request request = 1;
+  bool found = 2;
+}
+
+// --- ListRequests ---
+message ListRequestsRequest {
+  string status_filter = 1;    // "ACTIVE", "COMPLETED" (опционально)
+  int32 limit = 2;             // Максимум заявок (по умолчанию 100)
+}
+
+message ListRequestsResponse {
+  repeated Request requests = 1;
+  int32 total_count = 2;
+}
+
+// --- ActivateRequest ---
+message ActivateRequestRequest {
+  string request_id = 1;
+}
+
+message ActivateRequestResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+// --- StreamActiveRequests ---
+message StreamActiveRequestsRequest {
+  // Пустой запрос (можно добавить фильтры в будущем)
+}
+
+// ========================================
+// Service Definition
+// ========================================
+
+service RequestService {
+  // Unary RPC: Создать заявку
+  rpc CreateRequest(CreateRequestRequest) returns (CreateRequestResponse);
+  
+  // Unary RPC: Получить заявку по ID
+  rpc GetRequest(GetRequestRequest) returns (GetRequestResponse);
+  
+  // Unary RPC: Список заявок
+  rpc ListRequests(ListRequestsRequest) returns (ListRequestsResponse);
+  
+  // Unary RPC: Активировать заявку
+  rpc ActivateRequest(ActivateRequestRequest) returns (ActivateRequestResponse);
+  
+  // Server-side Streaming: Стрим активных заявок (real-time)
+  rpc StreamActiveRequests(StreamActiveRequestsRequest) returns (stream Request);
+}

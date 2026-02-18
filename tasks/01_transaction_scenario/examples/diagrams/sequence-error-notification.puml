@@ -1,0 +1,129 @@
+@startuml
+title Сценарий с ошибкой: Notification Service недоступен
+
+actor "Координатор" as Coord
+participant "API Gateway" as Gateway
+participant "Group Service" as GroupSvc
+database "PostgreSQL" as DB
+queue "Event Bus\n(RabbitMQ)" as Bus
+participant "Notification\nWorker" as NotifyWorker
+participant "SMS Service\n(Twilio)" as SMS
+
+note over Coord, SMS
+  Заявка REQ-2024-0142 уже создана.
+  Координатор формирует группу.
+end note
+
+Coord -> Gateway: POST /api/groups\n{request_id: "REQ-2024-0142",\nzone_id: "Z-001",\nmembers: [V1, V2, V3, V4]}
+activate Gateway
+
+Gateway -> GroupSvc: Пересылка запроса
+activate GroupSvc
+
+GroupSvc -> DB: BEGIN TRANSACTION
+activate DB
+
+GroupSvc -> DB: SELECT * FROM volunteers\nWHERE id IN (V1,V2,V3,V4)\nFOR UPDATE
+DB --> GroupSvc: 4 волонтёра\nдоступны
+
+GroupSvc -> DB: INSERT INTO groups\n(id='G-42', ...)
+DB --> GroupSvc: OK
+
+GroupSvc -> DB: UPDATE volunteers\nSET status='BUSY'
+DB --> GroupSvc: OK
+
+GroupSvc -> DB: UPDATE zones\nSET assigned_group_id='G-42'
+DB --> GroupSvc: OK
+
+GroupSvc -> DB: COMMIT TRANSACTION
+DB --> GroupSvc: Committed
+deactivate DB
+
+note over GroupSvc
+  Группа создана успешно.
+  Отправка уведомлений асинхронна.
+end note
+
+GroupSvc -> Bus: publish(GroupFormed,\ngroup_id='G-42')
+activate Bus
+Bus --> GroupSvc: ACK
+deactivate Bus
+
+GroupSvc --> Gateway: 201 Created\n{group_id: "G-42"}
+deactivate GroupSvc
+
+Gateway --> Coord: 201 Created\n{group_id: "G-42"}
+deactivate Gateway
+
+note over Coord
+  Координатор получил успешный ответ.
+  Группа создана!
+end note
+
+== Асинхронная обработка уведомлений ==
+
+Bus -> NotifyWorker: consume(GroupFormed)
+activate NotifyWorker
+
+NotifyWorker -> NotifyWorker: Формирование\nсписка получателей
+
+NotifyWorker -> SMS: sendSMS(leader,\n"Вы назначены старшим...")
+activate SMS
+
+note over SMS #FFAAAA
+  SMS Service недоступен!
+  Connection timeout 10s
+end note
+
+SMS --x NotifyWorker: TimeoutException\nafter 10s
+deactivate SMS
+
+NotifyWorker -> NotifyWorker: Обработка ошибки:\n- НЕ откатываем группу\n- Помещаем в retry queue
+
+NotifyWorker -> DB: INSERT INTO notification_queue\n(group_id='G-42', status='pending',\nretry_count=0, next_retry_at=NOW()+5min)
+activate DB
+DB --> NotifyWorker: OK
+deactivate DB
+
+NotifyWorker -> Bus: publish(NotificationFailed,\ngroup_id='G-42', reason='SMS timeout')
+activate Bus
+Bus --> NotifyWorker: ACK
+deactivate Bus
+
+note over NotifyWorker #FFFFAA
+  Уведомление поставлено в очередь.
+  Фоновый worker повторит попытку
+  через 5 минут.
+end note
+
+deactivate NotifyWorker
+
+== Повторная попытка через 5 минут ==
+
+NotifyWorker -> NotifyWorker: Запланировано\nповторное выполнение
+
+... 5 минут спустя ...
+
+activate NotifyWorker
+NotifyWorker -> DB: SELECT * FROM notification_queue\nWHERE status='pending'\nAND next_retry_at <= NOW()
+activate DB
+DB --> NotifyWorker: 1 запись\n(group_id='G-42')
+deactivate DB
+
+NotifyWorker -> SMS: sendSMS(leader, ...)
+activate SMS
+SMS --> NotifyWorker: Message-ID: msg-456\nStatus: sent ✅
+deactivate SMS
+
+NotifyWorker -> DB: UPDATE notification_queue\nSET status='delivered',\ndelivered_at=NOW()
+activate DB
+DB --> NotifyWorker: OK
+deactivate DB
+
+note over NotifyWorker #AAFFAA
+  Уведомление доставлено успешно!
+end note
+
+deactivate NotifyWorker
+
+@enduml
