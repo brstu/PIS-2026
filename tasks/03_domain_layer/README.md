@@ -1,6 +1,6 @@
 # Лабораторная работа №3. Доменный уровень
 
-**Дисциплина:** Проектирование интернет-систем  
+**Дисциплина:** Проектирование интернет-систем
 **Тема:** Сущности, Value Objects, агрегаты и инварианты
 
 ---
@@ -50,46 +50,46 @@
 ```python
 class Group:
     """Entity: Поисковая группа"""
-    
+
     MIN_MEMBERS = 3
     MAX_MEMBERS = 5
-    
+
     def __init__(self, group_id: str, leader_id: str):
         self._id = group_id  # G-01, G-02
         self._leader_id = leader_id
         self._members: List[str] = []  # IDs волонтёров
         self._status = "FORMING"  # FORMING → READY → DEPLOYED
-    
+
     def add_member(self, volunteer_id: str) -> None:
         """Добавить участника в группу"""
         if self._status != "FORMING":
             raise ValueError(f"Нельзя изменить состав группы в статусе {self._status}")
-        
+
         if len(self._members) >= self.MAX_MEMBERS:
             raise ValueError(f"Группа уже содержит максимум участников ({self.MAX_MEMBERS})")
-        
+
         if volunteer_id in self._members:
             raise ValueError(f"Участник {volunteer_id} уже в группе")
-        
+
         self._members.append(volunteer_id)
-    
+
     def mark_ready(self) -> None:
         """Пометить группу как готовую к выходу"""
         if len(self._members) < self.MIN_MEMBERS:
             raise ValueError(f"Группа должна содержать минимум {self.MIN_MEMBERS} участников")
-        
+
         self._status = "READY"
-    
+
     @property
     def member_count(self) -> int:
         return len(self._members)
-    
+
     def __eq__(self, other):
         """Равенство по ID"""
         if not isinstance(other, Group):
             return False
         return self._id == other._id
-    
+
     def __hash__(self):
         return hash(self._id)
 ```
@@ -125,34 +125,34 @@ from typing import Tuple
 @dataclass(frozen=True)  # frozen=True делает класс immutable
 class Zone:
     """Value Object: Зона поиска с координатами"""
-    
+
     name: str  # "North", "South", "East", "West"
     bounds: Tuple[float, float, float, float]  # (lat_min, lat_max, lon_min, lon_max)
-    
+
     def __post_init__(self):
         """Валидация при создании"""
         if not self.name:
             raise ValueError("Zone name cannot be empty")
-        
+
         lat_min, lat_max, lon_min, lon_max = self.bounds
-        
+
         if not (-90 <= lat_min <= 90 and -90 <= lat_max <= 90):
             raise ValueError(f"Latitude must be in range [-90, 90]: {lat_min}, {lat_max}")
-        
+
         if not (-180 <= lon_min <= 180 and -180 <= lon_max <= 180):
             raise ValueError(f"Longitude must be in range [-180, 180]: {lon_min}, {lon_max}")
-        
+
         if lat_min >= lat_max:
             raise ValueError(f"lat_min must be < lat_max: {lat_min} >= {lat_max}")
-        
+
         if lon_min >= lon_max:
             raise ValueError(f"lon_min must be < lon_max: {lon_min} >= {lon_max}")
-    
+
     def contains_point(self, lat: float, lon: float) -> bool:
         """Проверить, находится ли точка в зоне"""
         lat_min, lat_max, lon_min, lon_max = self.bounds
         return lat_min <= lat <= lat_max and lon_min <= lon <= lon_max
-    
+
     # Равенство по всем полям (автоматически в @dataclass)
     # __eq__ и __hash__ генерируются автоматически
 ```
@@ -163,18 +163,18 @@ class Zone:
 @dataclass(frozen=True)
 class PhoneNumber:
     """Value Object: Телефонный номер для SMS"""
-    
+
     number: str  # "+375291234567"
-    
+
     def __post_init__(self):
         if not self.number.startswith("+"):
             raise ValueError("Phone must start with +")
-        
+
         # Убираем + и проверяем что только цифры
         digits = self.number[1:]
         if not digits.isdigit():
             raise ValueError(f"Phone must contain only digits after +: {self.number}")
-        
+
         if len(digits) < 10 or len(digits) > 15:
             raise ValueError(f"Phone length must be 10-15 digits: {len(digits)}")
 ```
@@ -200,22 +200,22 @@ from dataclasses import dataclass, field
 
 class Request:
     """Aggregate Root: Заявка на поисково-спасательную операцию"""
-    
+
     def __init__(self, request_id: str, coordinator_id: str, zone: Zone):
         # Корень агрегата
         self._id = request_id  # REQ-2024-0001
         self._coordinator_id = coordinator_id
         self._zone = zone  # Value Object
-        
+
         # Части агрегата (не живут отдельно от Request)
         self._assigned_group: Optional[Group] = None
         self._events: List[DomainEvent] = []  # Доменные события
-        
+
         # Статус и аудит
         self._status = RequestStatus.DRAFT
         self._created_at = datetime.now()
         self._updated_at = datetime.now()
-    
+
     # Инвариант #1: Группа должна быть готова (3-5 участников)
     def assign_group(self, group: Group) -> None:
         """Назначить группу на заявку"""
@@ -223,22 +223,22 @@ class Request:
             raise ValueError(
                 f"Нельзя назначить группу для заявки в статусе {self._status}"
             )
-        
+
         if group.member_count < 3 or group.member_count > 5:
             raise ValueError(
                 f"Группа должна содержать 3-5 участников, текущий размер: {group.member_count}"
             )
-        
+
         self._assigned_group = group
         self._updated_at = datetime.now()
-        
+
         # Доменное событие
         self._events.append(GroupAssignedToRequest(
             request_id=self._id,
             group_id=group.id,
             occurred_at=datetime.now()
         ))
-    
+
     # Инвариант #2: Активировать можно только с назначенной группой
     def activate(self) -> None:
         """Активировать заявку (начать операцию)"""
@@ -246,15 +246,15 @@ class Request:
             raise ValueError(
                 "Нельзя активировать заявку без назначенной группы"
             )
-        
+
         if self._status != RequestStatus.DRAFT:
             raise ValueError(
                 f"Заявка уже имеет статус {self._status}"
             )
-        
+
         self._status = RequestStatus.ACTIVE
         self._updated_at = datetime.now()
-        
+
         # Доменное событие
         self._events.append(RequestActivated(
             request_id=self._id,
@@ -262,7 +262,7 @@ class Request:
             zone_name=self._zone.name,
             occurred_at=datetime.now()
         ))
-    
+
     # Инвариант #3: Нельзя изменить завершённую заявку
     def change_zone(self, new_zone: Zone) -> None:
         """Изменить зону поиска"""
@@ -270,11 +270,11 @@ class Request:
             raise ValueError(
                 "Нельзя изменить зону для завершённой заявки"
             )
-        
+
         old_zone_name = self._zone.name
         self._zone = new_zone
         self._updated_at = datetime.now()
-        
+
         self._events.append(RequestZoneChanged(
             request_id=self._id,
             old_zone=old_zone_name,
@@ -286,11 +286,11 @@ class Request:
 
     public void confirm() {
         ensureEditable();
-        
+
         if (lines.isEmpty()) {
             throw new EmptyOrderException(id);
         }
-        
+
         this.status = OrderStatus.CONFIRMED;
         registerEvent(new OrderConfirmedEvent(id, customerId, getTotalAmount()));
     }
@@ -299,7 +299,7 @@ class Request:
         if (status == OrderStatus.SHIPPED) {
             throw new IllegalStateException("Cannot cancel shipped order");
         }
-        
+
         this.status = OrderStatus.CANCELLED;
         registerEvent(new OrderCancelledEvent(id, reason));
     }
@@ -431,11 +431,11 @@ public class OrderCancelledEvent implements DomainEvent {
 
 ```java
 class OrderTest {
-    
+
     @Test
     void shouldNotConfirmEmptyOrder() {
         Order order = new Order(customerId, address);
-        
+
         assertThrows(EmptyOrderException.class, () -> order.confirm());
     }
 
@@ -443,8 +443,8 @@ class OrderTest {
     void shouldNotModifyConfirmedOrder() {
         Order order = createOrderWithItems();
         order.confirm();
-        
-        assertThrows(IllegalStateException.class, () -> 
+
+        assertThrows(IllegalStateException.class, () ->
             order.addLine(productId, 1, price)
         );
     }
@@ -454,7 +454,7 @@ class OrderTest {
         Order order = new Order(customerId, address);
         order.addLine(product1, 2, new Money(100, "USD"));
         order.addLine(product2, 1, new Money(50, "USD"));
-        
+
         Money total = order.getTotalAmount();
         assertEquals(new Money(250, "USD"), total);
     }
@@ -463,7 +463,7 @@ class OrderTest {
     void shouldRegisterEventWhenConfirmed() {
         Order order = createOrderWithItems();
         order.confirm();
-        
+
         List<DomainEvent> events = order.getEvents();
         assertEquals(1, events.size());
         assertTrue(events.get(0) instanceof OrderConfirmedEvent);

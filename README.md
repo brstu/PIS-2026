@@ -1,7 +1,7 @@
 # Проектирование интернет-систем (ПИС) - 2026
 
-**Курс:** 3  
-**Семестр:** 6  
+**Курс:** 3
+**Семестр:** 6
 **Форма аттестации:** Зачёт
 
 ## 🎯 Про что этот курс?
@@ -149,15 +149,15 @@ git log --show-signature -1
 
 ## 📖 Материалы
 
-- [Варианты лабораторных работ](ВАРИАНТЫ_ЛАБОРАТОРНЫХ.md)  
-- [Лабораторная работа №1](tasks/01_transaction_scenario/README.md)  
-- [Лабораторная работа №2](tasks/02_hexagonal_architecture/README.md)  
-- [Лабораторная работа №3](tasks/03_domain_layer/README.md)  
-- [Лабораторная работа №4](tasks/04_application_layer/README.md)  
-- [Лабораторная работа №5](tasks/05_infrastructure_layer/README.md)  
-- [Лабораторная работа №6](tasks/06_testing_strategy/README.md)  
-- [Лабораторная работа №7](tasks/07_cqrs_read_models/README.md)  
-- [Лабораторная работа №8](tasks/08_microservices/README.md)  
+- [Варианты лабораторных работ](ВАРИАНТЫ_ЛАБОРАТОРНЫХ.md)
+- [Лабораторная работа №1](tasks/01_transaction_scenario/README.md)
+- [Лабораторная работа №2](tasks/02_hexagonal_architecture/README.md)
+- [Лабораторная работа №3](tasks/03_domain_layer/README.md)
+- [Лабораторная работа №4](tasks/04_application_layer/README.md)
+- [Лабораторная работа №5](tasks/05_infrastructure_layer/README.md)
+- [Лабораторная работа №6](tasks/06_testing_strategy/README.md)
+- [Лабораторная работа №7](tasks/07_cqrs_read_models/README.md)
+- [Лабораторная работа №8](tasks/08_microservices/README.md)
 - [Лабораторная работа №9](tasks/09_grpc_protocol_buffers/README.md)
 
 ## Успеваемость

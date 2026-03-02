@@ -15,34 +15,34 @@ from infrastructure.adapter.in import RequestController
 class DependencyContainer:
     """
     DI-контейнер: Управление зависимостями
-    
+
     Создаёт и связывает все компоненты системы.
     """
-    
+
     def __init__(self):
         """Инициализация контейнера"""
         # Создать исходящие адаптеры (реализации портов)
         self._repository: RequestRepository = InMemoryRequestRepository()
         self._notifications: NotificationService = MockSmsService()
-        
+
         # Создать application service (инжектируем зависимости)
         self._request_service = RequestService(
             repository=self._repository,
             notifications=self._notifications
         )
-    
+
     def get_request_service(self) -> RequestService:
         """Получить RequestService (use-case)"""
         return self._request_service
-    
+
     def get_repository(self) -> RequestRepository:
         """Получить репозиторий"""
         return self._repository
-    
+
     def configure_web_app(self, app: FastAPI) -> None:
         """
         Настроить FastAPI приложение
-        
+
         Args:
             app: FastAPI приложение
         """

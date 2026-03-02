@@ -26,7 +26,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 def get_session() -> Session:
     """
     Dependency Injection для FastAPI
-    
+
     Использование:
         @app.get("/requests/{id}")
         def get_request(id: str, db: Session = Depends(get_session)):
@@ -43,7 +43,7 @@ def get_session() -> Session:
 def session_scope():
     """
     Context Manager для ручного управления транзакциями
-    
+
     Использование:
         with session_scope() as session:
             repo = RequestRepositoryImpl(session)

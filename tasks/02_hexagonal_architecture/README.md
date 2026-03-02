@@ -1,6 +1,6 @@
 # Лабораторная работа №2. Гексагональная архитектура
 
-**Дисциплина:** Проектирование интернет-систем  
+**Дисциплина:** Проектирование интернет-систем
 **Тема:** Проектирование архитектуры: порты, адаптеры и изоляция домена
 
 ---
@@ -177,7 +177,7 @@ class CreateTaskCommand:
 
 class CreateTaskUseCase(ABC):
     """Входящий порт: создание задачи"""
-    
+
     @abstractmethod
     def create_task(self, command: CreateTaskCommand) -> str:
         """
@@ -195,7 +195,7 @@ from abc import ABC, abstractmethod
 
 class GetTaskUseCase(ABC):
     """Входящий порт: получение задачи по ID"""
-    
+
     @abstractmethod
     def get_task(self, task_id: str):
         """
@@ -215,12 +215,12 @@ from abc import ABC, abstractmethod
 
 class TaskRepository(ABC):
     """Исходящий порт: сохранение и загрузка задач"""
-    
+
     @abstractmethod
     def save(self, task) -> None:
         """Сохраняет задачу"""
         pass
-    
+
     @abstractmethod
     def find_by_id(self, task_id: str):
         """Находит задачу по ID"""
@@ -234,7 +234,7 @@ from abc import ABC, abstractmethod
 
 class NotificationService(ABC):
     """Исходящий порт: отправка уведомлений"""
-    
+
     @abstractmethod
     def send_task_assigned(self, task_id: str, assignee_email: str) -> None:
         """Уведомляет исполнителя о назначении задачи"""
@@ -259,14 +259,14 @@ class NotificationService(ABC):
 # domain/models/task.py
 class Task:
     """Доменная модель: Задача"""
-    
+
     def __init__(self, task_id: str, title: str, description: str):
         self.id = task_id
         self.title = title
         self.description = description
         self.assignee_id = None
         self.status = "TODO"
-    
+
     def assign(self, assignee_id: str):
         """Назначить исполнителя"""
         self.assignee_id = assignee_id
@@ -284,18 +284,18 @@ class Task:
 # application/service/task_service.py
 class TaskService:
     """Реализация use-cases для управления задачами"""
-    
+
     def __init__(self, repository, notification_service):
         self.repository = repository
         self.notification_service = notification_service
-    
+
     def create_task(self, command):
         # TODO: реализовать в Lab #4
         # 1. Создать Task (domain)
         # 2. Сохранить через repository
         # 3. Вернуть ID
         raise NotImplementedError("Будет реализовано в Lab #4")
-    
+
     def get_task(self, task_id: str):
         # TODO: реализовать в Lab #4
         raise NotImplementedError("Будет реализовано в Lab #4")
@@ -312,13 +312,13 @@ class TaskService:
 # infrastructure/adapter/out/in_memory_task_repository.py
 class InMemoryTaskRepository:
     """Реализация TaskRepository: хранение в памяти"""
-    
+
     def __init__(self):
         self.tasks = {}  # Dict[str, Task]
-    
+
     def save(self, task):
         self.tasks[task.id] = task
-    
+
     def find_by_id(self, task_id: str):
         return self.tasks.get(task_id)
 ```
@@ -336,18 +336,18 @@ class InMemoryTaskRepository:
 # infrastructure/config/dependency_injection.py
 class DependencyContainer:
     """Конфигурация DI: связывание портов и адаптеров"""
-    
+
     def __init__(self):
         # Создаём исходящие адаптеры
         self.task_repository = InMemoryTaskRepository()
         self.notification_service = ConsoleNotificationService()
-        
+
         # Создаём application service с инжекцией зависимостей
         self.task_service = TaskService(
             repository=self.task_repository,
             notification_service=self.notification_service
         )
-    
+
     def get_task_service(self):
         return self.task_service
 ```
@@ -443,5 +443,5 @@ lab-02/
 
 ## Срок сдачи
 
-**Неделя 4-5 семестра**  
+**Неделя 4-5 семестра**
 Защита: демонстрация диаграммы, структуры проекта, интерфейсов портов + ответы на контрольные вопросы

@@ -105,12 +105,12 @@ def test_create_request_handler():
     # Arrange
     mock_repo = Mock(RequestRepository)
     handler = CreateRequestHandler(mock_repo, Mock())
-    
+
     command = CreateRequestCommand("COORD-1", "North", (52.0, 52.5, 23.5, 24.0))
-    
+
     # Act
     request_id = handler.handle(command)
-    
+
     # Assert
     assert request_id.startswith("REQ-")
     mock_repo.save.assert_called_once()
@@ -122,16 +122,16 @@ def test_create_request_handler():
 def test_create_request_via_service():
     # Arrange
     service = RequestService(...)
-    
+
     command = CreateRequestCommand(...)
-    
+
     # Act
     request_id = service.create_request(command)
-    
+
     # Assert
     query = GetRequestByIdQuery(request_id)
     dto = service.get_request_by_id(query)
-    
+
     assert dto.status == "DRAFT"
     assert dto.zone_name == "North"
 ```

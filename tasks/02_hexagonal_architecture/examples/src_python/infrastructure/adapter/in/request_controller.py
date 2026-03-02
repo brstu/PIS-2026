@@ -27,34 +27,34 @@ class CreateRequestResponseDto(BaseModel):
 class RequestController:
     """
     Адаптер: REST API контроллер (FastAPI)
-    
+
     Входящий адаптер, который вызывает систему через
     CreateRequestUseCase (входящий порт)
     """
-    
+
     def __init__(self, app: FastAPI, use_case: CreateRequestUseCase):
         """
         Инициализация контроллера
-        
+
         Args:
             app: FastAPI приложение
             use_case: Use-case создания заявки (входящий порт)
         """
         self._use_case = use_case
-        
+
         # Регистрация маршрутов
         @app.post("/api/requests", response_model=CreateRequestResponseDto)
         async def create_request(dto: CreateRequestDto):
             """
             POST /api/requests - Создать заявку
-            
+
             Body:
             {
               "coordinator_id": "coordinator-001",
               "zone": "NORTH",
               "volunteer_ids": ["vol-123", "vol-456", "vol-789"]
             }
-            
+
             Response:
             {
               "request_id": "REQ-2024-0042"
@@ -67,15 +67,15 @@ class RequestController:
                     zone=dto.zone,
                     volunteer_ids=dto.volunteer_ids
                 )
-                
+
                 # Вызвать use-case (входящий порт)
                 request_id = self._use_case.create_request(command)
-                
+
                 return CreateRequestResponseDto(request_id=request_id)
-                
+
             except ValueError as e:
                 raise HTTPException(status_code=400, detail=str(e))
-        
+
         @app.get("/api/health")
         async def health_check():
             """GET /api/health - Health check"""

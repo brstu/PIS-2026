@@ -1,6 +1,6 @@
 # Лабораторная работа №4. Application Layer (Прикладной слой)
 
-**Дисциплина:** Проектирование интернет-систем  
+**Дисциплина:** Проектирование интернет-систем
 **Тема:** Команды, Запросы, Обработчики (CQRS на уровне интерфейса)
 
 ---
@@ -157,7 +157,7 @@ class RequestService(ABC):
     def create_request(self, command: CreateRequestCommand) -> str:
         """Создать заявку. Возвращает ID."""
         pass
-    
+
     @abstractmethod
     def get_request_by_id(self, query: GetRequestByIdQuery) -> RequestDto:
         """Получить заявку по ID."""
@@ -262,6 +262,5 @@ lab-04/
 
 ## Срок сдачи
 
-**Неделя 8-9 семестра**  
+**Неделя 8-9 семестра**
 Защита: демонстрация работы handlers + ответы на вопросы
-

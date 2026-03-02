@@ -23,16 +23,16 @@ package "Infrastructure Layer" <<infrastructure>> {
     rectangle "REST API" as REST {
         component "RequestController" as Controller
     }
-    
+
     ' Исходящие адаптеры
     rectangle "Persistence" as Persistence {
         component "InMemoryRequestRepository" as InMemRepo
     }
-    
+
     rectangle "Notification" as Notification {
         component "MockSmsService" as MockSms
     }
-    
+
     rectangle "Configuration" as Config {
         component "BeanConfiguration" as Beans
     }
@@ -43,12 +43,12 @@ package "Application Layer" <<application>> {
     rectangle "Inbound Ports" as InPorts {
         interface "CreateRequestUseCase" as CreateUC
     }
-    
+
     rectangle "Outbound Ports" as OutPorts {
         interface "RequestRepository" as RepoPort
         interface "NotificationService" as NotiPort
     }
-    
+
     rectangle "Service" as Service {
         component "RequestService" as ReqService
     }
@@ -59,11 +59,11 @@ package "Domain Layer" <<domain>> {
     rectangle "Aggregates" as Aggregates {
         component "Request" as Request
     }
-    
+
     rectangle "Entities" as Entities {
         component "Group" as Group
     }
-    
+
     rectangle "Value Objects" as VOs {
         component "Zone" as Zone
         component "RequestStatus" as Status

@@ -167,7 +167,7 @@ class RabbitMQPublisher:
         )
         self.channel = self.connection.channel()
         self.channel.exchange_declare(exchange='pso_events', exchange_type='topic')
-    
+
     def publish(self, event_type: str, payload: dict):
         self.channel.basic_publish(
             exchange='pso_events',
@@ -190,7 +190,7 @@ class RabbitMQSubscriber:
         )
         self.channel = self.connection.channel()
         self.channel.exchange_declare(exchange='pso_events', exchange_type='topic')
-        
+
         # Очередь для Group Service
         result = self.channel.queue_declare(queue='group_service_queue', durable=True)
         self.channel.queue_bind(
@@ -198,7 +198,7 @@ class RabbitMQSubscriber:
             queue='group_service_queue',
             routing_key='RequestCreated'
         )
-    
+
     def subscribe(self, callback):
         self.channel.basic_consume(
             queue='group_service_queue',
@@ -226,21 +226,21 @@ upstream group_service {
 
 server {
     listen 80;
-    
+
     # Request Service routes
     location /requests {
         proxy_pass http://request_service;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
-    
+
     # Group Service routes
     location /groups {
         proxy_pass http://group_service;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
-    
+
     # Health check
     location /health {
         return 200 "OK";
@@ -267,7 +267,7 @@ services:
     depends_on:
       - requests-db
       - rabbitmq
-  
+
   # Group Service
   group-service:
     build: ./group-service
@@ -279,7 +279,7 @@ services:
     depends_on:
       - groups-db
       - rabbitmq
-  
+
   # Databases
   requests-db:
     image: postgres:15
@@ -289,7 +289,7 @@ services:
       POSTGRES_DB: requests
     volumes:
       - requests-data:/var/lib/postgresql/data
-  
+
   groups-db:
     image: postgres:15
     environment:
@@ -298,7 +298,7 @@ services:
       POSTGRES_DB: groups
     volumes:
       - groups-data:/var/lib/postgresql/data
-  
+
   # Message Broker
   rabbitmq:
     image: rabbitmq:3-management
@@ -308,7 +308,7 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: password
-  
+
   # API Gateway
   api-gateway:
     image: nginx:alpine
@@ -411,18 +411,18 @@ group_service_url = f"http://{services[0]['ServiceAddress']}:{services[0]['Servi
 
 ## Преимущества микросервисов
 
-✅ **Независимое развёртывание** - Request Service можно деплоить отдельно  
-✅ **Масштабируемость** - можно масштабировать только Group Service  
-✅ **Технологическая гибкость** - Request Service на Python, Group Service на Go  
+✅ **Независимое развёртывание** - Request Service можно деплоить отдельно
+✅ **Масштабируемость** - можно масштабировать только Group Service
+✅ **Технологическая гибкость** - Request Service на Python, Group Service на Go
 ✅ **Изоляция сбоев** - падение Group Service не ломает Request Service
 
 ---
 
 ## Недостатки микросервисов
 
-❌ **Сложность** - вместо 1 приложения теперь 3+ сервиса  
-❌ **Распределённые транзакции** - Saga, 2PC  
-❌ **Мониторинг** - нужен Prometheus, Grafana, Jaeger  
+❌ **Сложность** - вместо 1 приложения теперь 3+ сервиса
+❌ **Распределённые транзакции** - Saga, 2PC
+❌ **Мониторинг** - нужен Prometheus, Grafana, Jaeger
 ❌ **Тестирование** - E2E тесты сложнее
 
 ---

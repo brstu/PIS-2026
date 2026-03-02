@@ -135,10 +135,10 @@ def test_repository_saves_request():
         # Arrange
         repo = RequestRepositoryImpl(postgres.get_connection_url())
         request = Request("REQ-2024-0001", "COORD-1", zone)
-        
+
         # Act
         repo.save(request)
-        
+
         # Assert
         found = repo.find_by_id("REQ-2024-0001")
         assert found.request_id == "REQ-2024-0001"
@@ -151,13 +151,13 @@ from fastapi.testclient import TestClient
 
 def test_create_request_via_api():
     client = TestClient(app)
-    
+
     response = client.post("/api/requests", json={
         "coordinator_id": "COORD-1",
         "zone_name": "North",
         "zone_bounds": [52.0, 52.5, 23.5, 24.0]
     })
-    
+
     assert response.status_code == 201
     assert "request_id" in response.json()
 ```

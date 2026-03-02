@@ -13,13 +13,13 @@ from application.query.handlers.get_request_by_id_handler import GetRequestByIdH
 class RequestServiceImpl:
     """
     Application Service: фасад для Command/Query Handlers
-    
+
     Зачем нужен:
     - Упрощает вызов прикладных операций (единая точка входа)
     - Инкапсулирует детали обработки команд и запросов
     - Удобен для использования в контроллерах
     """
-    
+
     def __init__(
         self,
         create_request_handler: CreateRequestHandler,
@@ -27,11 +27,11 @@ class RequestServiceImpl:
     ):
         self.create_request_handler = create_request_handler
         self.get_request_by_id_handler = get_request_by_id_handler
-    
+
     def create_request(self, command: CreateRequestCommand) -> str:
         """Создать заявку. Возвращает ID."""
         return self.create_request_handler.handle(command)
-    
+
     def get_request_by_id(self, query: GetRequestByIdQuery) -> RequestDto:
         """Получить заявку по ID."""
         return self.get_request_by_id_handler.handle(query)

@@ -16,8 +16,8 @@ Client                          Server
   │<─── 200 OK (JSON 250 bytes) ───│
 ```
 
-**Размер:** ~250 байт  
-**Парсинг:** JSON → Python dict (медленно)  
+**Размер:** ~250 байт
+**Парсинг:** JSON → Python dict (медленно)
 **Типы:** Нет (всё строки/числа)
 
 ---
@@ -32,18 +32,18 @@ Client                          Server
   │<─── Request (binary 80 bytes) ─│
 ```
 
-**Размер:** ~80 байт (в 3 раза меньше)  
-**Парсинг:** Protobuf → Python object (быстро)  
+**Размер:** ~80 байт (в 3 раза меньше)
+**Парсинг:** Protobuf → Python object (быстро)
 **Типы:** Строгая типизация (схема .proto)
 
 ---
 
 ## Преимущества gRPC
 
-✅ **Производительность** - в 3-10 раз быстрее REST  
-✅ **HTTP/2** - мультиплексирование, server push  
-✅ **Streaming** - server/client/bidirectional streaming  
-✅ **Строгая типизация** - схема .proto как контракт  
+✅ **Производительность** - в 3-10 раз быстрее REST
+✅ **HTTP/2** - мультиплексирование, server push
+✅ **Streaming** - server/client/bidirectional streaming
+✅ **Строгая типизация** - схема .proto как контракт
 ✅ **Code generation** - автогенерация клиентов (Python, Go, Java, C#)
 
 ---
@@ -133,10 +133,10 @@ message StreamActiveRequestsRequest {
 service RequestService {
   // Unary RPC: Create Request
   rpc CreateRequest(CreateRequestRequest) returns (CreateRequestResponse);
-  
+
   // Unary RPC: Get Request by ID
   rpc GetRequest(GetRequestRequest) returns (GetRequestResponse);
-  
+
   // Server-side Streaming: Stream active requests
   rpc StreamActiveRequests(StreamActiveRequestsRequest) returns (stream Request);
 }
@@ -178,15 +178,15 @@ class RequestServiceServicer(request_service_pb2_grpc.RequestServiceServicer):
     """
     gRPC Server: Request Service
     """
-    
+
     def __init__(self):
         # In-memory storage (в реальности: PostgreSQL)
         self.requests = {}
-    
+
     def CreateRequest(self, request, context):
         """Unary RPC: Create Request"""
         request_id = f"REQ-{int(time.time())}"
-        
+
         # Создание Request
         new_request = request_service_pb2.Request(
             request_id=request_id,
@@ -195,18 +195,18 @@ class RequestServiceServicer(request_service_pb2_grpc.RequestServiceServicer):
             status="DRAFT",
             created_at=int(time.time())
         )
-        
+
         self.requests[request_id] = new_request
-        
+
         return request_service_pb2.CreateRequestResponse(
             request_id=request_id,
             status="SUCCESS"
         )
-    
+
     def GetRequest(self, request, context):
         """Unary RPC: Get Request"""
         req = self.requests.get(request.request_id)
-        
+
         if req:
             return request_service_pb2.GetRequestResponse(
                 request=req,
@@ -216,7 +216,7 @@ class RequestServiceServicer(request_service_pb2_grpc.RequestServiceServicer):
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details("Request not found")
             return request_service_pb2.GetRequestResponse(found=False)
-    
+
     def StreamActiveRequests(self, request, context):
         """Server-side Streaming: Stream active requests"""
         for req in self.requests.values():
@@ -257,12 +257,12 @@ def create_request(stub):
         lon_min=23.5,
         lon_max=24.0
     )
-    
+
     request = request_service_pb2.CreateRequestRequest(
         coordinator_id="COORD-1",
         zone=zone
     )
-    
+
     response = stub.CreateRequest(request)
     print(f"✅ Request created: {response.request_id}")
     return response.request_id
@@ -271,7 +271,7 @@ def get_request(stub, request_id):
     """Unary RPC: Get Request"""
     request = request_service_pb2.GetRequestRequest(request_id=request_id)
     response = stub.GetRequest(request)
-    
+
     if response.found:
         print(f"📦 Request: {response.request.request_id}")
         print(f"   Coordinator: {response.request.coordinator_id}")
@@ -283,7 +283,7 @@ def get_request(stub, request_id):
 def stream_active_requests(stub):
     """Server-side Streaming"""
     request = request_service_pb2.StreamActiveRequestsRequest()
-    
+
     print("📡 Streaming active requests...")
     for req in stub.StreamActiveRequests(request):
         print(f"  → {req.request_id} ({req.status})")
@@ -291,13 +291,13 @@ def stream_active_requests(stub):
 def run():
     with grpc.insecure_channel('localhost:50051') as channel:
         stub = request_service_pb2_grpc.RequestServiceStub(channel)
-        
+
         # 1. Create Request
         request_id = create_request(stub)
-        
+
         # 2. Get Request
         get_request(stub, request_id)
-        
+
         # 3. Stream active requests
         # stream_active_requests(stub)
 

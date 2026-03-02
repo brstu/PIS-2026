@@ -1,6 +1,6 @@
 # Анализ границ ответственности
 
-**Система:** Поисково-спасательный отряд «Юго-Запад» 🔦  
+**Система:** Поисково-спасательный отряд «Юго-Запад» 🔦
 **Сценарий:** Создание заявки на поиск и формирование группы
 
 ---
@@ -151,7 +151,7 @@
 **Стратегия:**
 1. **Блокировка:** Используем `SELECT ... FOR UPDATE` при проверке доступности волонтёров
    ```sql
-   SELECT * FROM volunteers 
+   SELECT * FROM volunteers
    WHERE id IN (1, 2, 3) AND status = 'AVAILABLE'
    FOR UPDATE;
    ```
@@ -207,7 +207,7 @@ CREATE INDEX idx_idempotent_created ON idempotent_requests(created_at);
 **Решение:**
 1. В таблице `notification_queue` добавляем уникальный ключ:
    ```sql
-   CREATE UNIQUE INDEX idx_notification_dedup 
+   CREATE UNIQUE INDEX idx_notification_dedup
    ON notification_queue(request_id, group_id, recipient_phone, notification_type);
    ```
 2. При попытке добавить дубликат → игнорируем (ON CONFLICT DO NOTHING)
@@ -220,7 +220,7 @@ CREATE INDEX idx_idempotent_created ON idempotent_requests(created_at);
 **Решение:**
 1. Проверяем, есть ли уже группа для этой заявки и зоны:
    ```sql
-   SELECT * FROM groups 
+   SELECT * FROM groups
    WHERE request_id = 'REQ-2024-0142' AND assigned_zone_id = 'Z-001';
    ```
 2. Если группа уже существует → возвращаем её ID (не создаём новую)

@@ -11,35 +11,35 @@ from domain.models.request import Request
 class GetRequestByIdHandler:
     """
     Handler: Получить заявку по ID
-    
+
     Шаги:
     1. Загрузить Request из Repository
     2. Преобразовать в RequestDto
     3. Вернуть DTO
     """
-    
+
     def __init__(self, request_repository):
         self.request_repository = request_repository
-    
+
     def handle(self, query: GetRequestByIdQuery) -> RequestDto:
         """
         Обработать запрос GetRequestById
-        
+
         Returns:
             RequestDto - упрощённая модель для чтения
-        
+
         Raises:
             ValueError: Если заявка не найдена
         """
         # 1. Загрузка из репозитория
         request = self.request_repository.find_by_id(query.request_id)
-        
+
         if not request:
             raise ValueError(f"Request {query.request_id} не найдена")
-        
+
         # 2. Преобразование в DTO
         return self._map_to_dto(request)
-    
+
     def _map_to_dto(self, request: Request) -> RequestDto:
         """Преобразовать доменную модель в DTO"""
         return RequestDto(

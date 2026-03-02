@@ -85,16 +85,16 @@ message StreamActiveRequestsRequest {
 service RequestService {
   // Unary RPC: Создать заявку
   rpc CreateRequest(CreateRequestRequest) returns (CreateRequestResponse);
-  
+
   // Unary RPC: Получить заявку по ID
   rpc GetRequest(GetRequestRequest) returns (GetRequestResponse);
-  
+
   // Unary RPC: Список заявок
   rpc ListRequests(ListRequestsRequest) returns (ListRequestsResponse);
-  
+
   // Unary RPC: Активировать заявку
   rpc ActivateRequest(ActivateRequestRequest) returns (ActivateRequestResponse);
-  
+
   // Server-side Streaming: Стрим активных заявок (real-time)
   rpc StreamActiveRequests(StreamActiveRequestsRequest) returns (stream Request);
 }

@@ -23,7 +23,7 @@ class CreateRequestRequest(BaseModel):
     coordinator_id: str = Field(..., example="COORD-1")
     zone_name: str = Field(..., example="North")
     zone_bounds: Tuple[float, float, float, float] = Field(
-        ..., 
+        ...,
         example=[52.0, 52.5, 23.5, 24.0],
         description="lat_min, lat_max, lon_min, lon_max"
     )
@@ -48,7 +48,7 @@ def create_request(
 ):
     """
     Создать новую заявку на поисково-спасательную операцию
-    
+
     **Пример запроса:**
     ```json
     {
@@ -57,7 +57,7 @@ def create_request(
       "zone_bounds": [52.0, 52.5, 23.5, 24.0]
     }
     ```
-    
+
     **Возвращает:**
     - ID созданной заявки (REQ-2024-NNNN)
     """
@@ -66,9 +66,9 @@ def create_request(
         zone_name=request_data.zone_name,
         zone_bounds=request_data.zone_bounds
     )
-    
+
     request_id = handler.handle(command)
-    
+
     return CreateRequestResponse(request_id=request_id)
 
 
@@ -79,18 +79,18 @@ def get_request(
 ):
     """
     Получить заявку по ID
-    
+
     **Параметры:**
     - `request_id`: ID заявки (например, REQ-2024-0001)
-    
+
     **Возвращает:**
     - Детали заявки (RequestDto)
-    
+
     **Ошибки:**
     - 404: Заявка не найдена
     """
     query = GetRequestByIdQuery(request_id=request_id)
-    
+
     try:
         dto = handler.handle(query)
         return dto
@@ -106,14 +106,14 @@ def assign_group_to_request(
 ):
     """
     Назначить группу на заявку
-    
+
     **Параметры:**
     - `request_id`: ID заявки
     - `group_id`: ID группы (G-NN)
-    
+
     **Возвращает:**
     - 200 OK при успешном назначении
-    
+
     **Ошибки:**
     - 404: Заявка или группа не найдены
     - 400: Группа не готова (недостаточно участников)
@@ -128,7 +128,7 @@ def list_active_requests(
 ):
     """
     Получить список всех активных заявок
-    
+
     **Возвращает:**
     - Массив RequestDto в статусе ACTIVE
     """
@@ -143,11 +143,11 @@ def activate_request(
 ):
     """
     Активировать заявку (начать операцию)
-    
+
     **Требования:**
     - Заявка должна быть в статусе DRAFT
     - Группа должна быть назначена
-    
+
     **Ошибки:**
     - 404: Заявка не найдена
     - 400: Нельзя активировать без группы

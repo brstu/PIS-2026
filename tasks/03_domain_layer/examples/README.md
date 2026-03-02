@@ -30,14 +30,14 @@ class Request:
         # Валидация
         if self._status != RequestStatus.DRAFT:
             raise ValueError(...)
-        
+
         # Инварианты
         if group.member_count < 3 or group.member_count > 5:
             raise ValueError(...)
-        
+
         # Бизнес-логика
         self._assigned_group = group
-        
+
         #  Доменное событие
         self._events.append(GroupAssignedToRequest(...))
 ```
@@ -137,7 +137,7 @@ def assign_group(self, group: Group) -> None:
     # Инвариант #1
     if self._status != RequestStatus.DRAFT:
         raise ValueError("Нельзя назначить группу...")
-    
+
     # Инвариант #2
     if group.member_count < 3 or group.member_count > 5:
         raise ValueError("Группа должна содержать 3-5...")

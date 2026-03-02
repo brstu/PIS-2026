@@ -12,7 +12,7 @@ from infrastructure.config import get_container
 def create_app() -> FastAPI:
     """
     Создать и настроить FastAPI приложение
-    
+
     Returns:
         Настроенное FastAPI приложение
     """
@@ -21,11 +21,11 @@ def create_app() -> FastAPI:
         description="Сервис управления заявками на поисково-спасательные операции",
         version="1.0.0"
     )
-    
+
     # Получить DI-контейнер и настроить приложение
     container = get_container()
     container.configure_web_app(app)
-    
+
     return app
 
 
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     print("🚀 Запуск Request Service...")
     print("📖 Документация API: http://localhost:8000/docs")
     print()
-    
+
     uvicorn.run(
         "main:app",
         host="0.0.0.0",

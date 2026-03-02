@@ -1,0 +1,51 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  # - repo: local
+  #   hooks:
+  #     - id: markdownlint
+  #       name: markdownlint (local)
+  #       entry: markdownlint
+  #       language: system
+  #       files: \.(md|markdown)$
+  #     - id: htmlhint
+  #       name: htmlhint (local)
+  #       entry: htmlhint
+  #       language: system
+  #       files: \.(html?)$
+  #     - id: stylelint
+  #       name: stylelint (local)
+  #       entry: stylelint
+  #       language: system
+  #       files: \.(css|scss|sass)$
+  #     - id: eslint
+  #       name: eslint (local)
+  #       entry: eslint
+  #       language: system
+  #       files: \.(js|jsx|ts|tsx)$
+  #     - id: yamllint
+  #       name: yamllint (local)
+  #       entry: yamllint
+  #       language: system
+  #       files: \.(ya?ml)$
+  #     - id: jsonlint
+  #       name: jsonlint (local)
+  #       entry: jq --exit-status .
+  #       language: system
+  #       files: \.(json)$
+  #     - id: hadolint
+  #       name: hadolint (local)
+  #       entry: hadolint
+  #       language: system
+  #       files: ^Dockerfile$|Dockerfile\b
+  #     - id: sqlfluff
+  #       name: sqlfluff (local)
+  #       entry: sqlfluff lint
+  #       language: system
+  #       files: \.(sql)$

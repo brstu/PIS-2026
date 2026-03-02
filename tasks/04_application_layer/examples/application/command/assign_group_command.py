@@ -10,14 +10,14 @@ from dataclasses import dataclass
 class AssignGroupToRequestCommand:
     """
     Команда: Назначить группу на заявку
-    
+
     Поля:
     - request_in: ID заявки (REQ-2024-NNNN)
     - group_id: ID группы (G-NN)
     """
     request_id: str
     group_id: str
-    
+
     def __post_init__(self):
         if not self.request_id:
             raise ValueError("request_id обязателен")

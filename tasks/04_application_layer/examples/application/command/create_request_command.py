@@ -12,7 +12,7 @@ from typing import Tuple
 class CreateRequestCommand:
     """
     Команда: Создать новую заявку
-    
+
     Поля:
     - coordinator_id: ID координатора
     - zone_name: Название зоны
@@ -21,7 +21,7 @@ class CreateRequestCommand:
     coordinator_id: str
     zone_name: str
     zone_bounds: Tuple[float, float, float, float]
-    
+
     def __post_init__(self):
         """Базовая валидация примитивов"""
         if not self.coordinator_id:

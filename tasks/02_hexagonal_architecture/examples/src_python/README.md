@@ -156,14 +156,14 @@ def test_create_request():
     # Моки адаптеров
     mock_repo = Mock(spec=RequestRepository)
     mock_sms = Mock(spec=NotificationService)
-    
+
     # Сервис с моками
     service = RequestService(mock_repo, mock_sms)
-    
+
     # Тест без реальной БД и SMS
     command = CreateRequestCommand(...)
     request_id = service.create_request(command)
-    
+
     # Проверки
     mock_repo.save.assert_called_once()
     assert mock_sms.send_sms.call_count == 3
