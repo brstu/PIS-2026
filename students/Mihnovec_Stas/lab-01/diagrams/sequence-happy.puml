@@ -1,0 +1,42 @@
+@startuml
+skinparam maxMessageSize 150
+actor "Читатель" as User
+participant "Web UI" as UI
+participant "API Gateway" as API
+participant "Complaint Service" as CompAPI
+database "PostgreSQL" as DB
+participant "AI Moderation" as Moderation
+participant "RabbitMQ (Broker)" as Broker
+
+User -> UI: Нажать "Отправить жалобу"
+UI -> API: POST /api/complaints\n{news_id, reason}
+activate API
+
+API -> CompAPI: CreateComplaint()
+activate CompAPI
+
+CompAPI -> DB: Проверка дубликатов (user_id, news_id)
+DB --> CompAPI: Not found (OK)
+
+CompAPI -> DB: INSERT complaint (status: PENDING)
+DB --> CompAPI: complaint_id
+
+CompAPI -> Moderation: POST /analyze {text}
+activate Moderation
+Moderation --> CompAPI: status: REQUIRES_REVIEW
+deactivate Moderation
+
+CompAPI -> DB: UPDATE status (REVIEW_PENDING)
+
+CompAPI -> Broker: Publish Event: ComplaintCreated
+activate Broker
+Broker --> CompAPI: ACK
+deactivate Broker
+
+CompAPI --> API: 201 Created, complaint_id
+deactivate CompAPI
+
+API --> UI: Успешный ответ
+deactivate API
+UI --> User: Показать уведомление "Жалоба принята"
+@enduml
