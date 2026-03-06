@@ -1,4 +1,3 @@
----
 default: true
 
 # Allow long lines (tables/URLs)
@@ -21,8 +20,17 @@ MD040: false
 # Do not require blank line before lists in tighter docs
 MD032: false
 
+# Ordered list prefix enforcement
+MD029: false
+
+# Trailing punctuation in header
+MD026: false
+
 # Allow inline HTML tables and relaxed table rules
 MD034: false
 
-#ul-style Unordered list style - allow both `*` and `-`
+# ul-style Unordered list style - allow both `*` and `-`
 MD004: false
+
+# Relax emphasis about surrounding spaces and punctuation
+MD036: false

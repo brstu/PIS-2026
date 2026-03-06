@@ -18,7 +18,7 @@ java -version
 # Ожидается: java version "17.x.x" или выше
 ```
 
-### ❌ Если что-то не установлено:
+### ❌ Если что-то не установлено
 
 **Git не найден?**
 - Скачать: https://git-scm.com/download/win
@@ -126,28 +126,36 @@ code examples\diagrams\sequence-happy.puml
 Откройте и изучите готовые примеры:
 
 ### 📄 Use-case описание
+
 ```powershell
 code examples\use-case.md
 ```
+
 Пример детального описания бизнес-сценария.
 
 ### 🧪 Gherkin-сценарии
+
 ```powershell
 code examples\scenarios.feature
 ```
+
 14 сценариев тестирования (успешные + ошибочные).
 
 ### 📊 Анализ транзакций
+
 ```powershell
 code examples\analysis.md
 ```
+
 Таблицы транзакционных границ и обработка ошибок.
 
 ### 🎨 Диаграммы
+
 ```powershell
 code examples\diagrams\sequence-happy.puml
 code examples\diagrams\sequence-error-notification.puml
 ```
+
 PlantUML диаграммы для успешного сценария и error case.
 
 ---
@@ -165,7 +173,7 @@ code ..\..\ВАРИАНТЫ_ЛАБОРАТОРНЫХ.md
 
 ## ✅ Шаг 7: Создайте свой отчёт
 
-### Создайте папку для вашей работы:
+### Создайте папку для вашей работы
 
 ```powershell
 # Вернитесь в корень репозитория (если вы в папке labs)
@@ -183,7 +191,7 @@ cd students\Ivanov_Ivan\lab-01
 - Название ветки: `lab01-группа-фамилия` (латиницей, строчными буквами)
 - Папка студента: `Фамилия_Имя` (с заглавной буквы, кириллицей или латиницей)
 
-### Скопируйте макет отчёта:
+### Скопируйте макет отчёта
 
 ```powershell
 # Скопируйте макет
@@ -196,7 +204,7 @@ New-Item scenarios.feature -ItemType File
 New-Item analysis.md -ItemType File
 ```
 
-### Откройте в VS Code:
+### Откройте в VS Code
 
 ```powershell
 code .
@@ -206,7 +214,7 @@ code .
 
 ## ✅ Шаг 8: Заполните отчёт и отправьте на проверку
 
-### Заполните все файлы:
+### Заполните все файлы
 
 1. Откройте `Отчет.md`
 2. Замените все плейсхолдеры `<...>` и `[...]` на свои данные
@@ -216,7 +224,7 @@ code .
 6. Заполните `analysis.md` с транзакционными границами
 7. Экспортируйте диаграммы в PNG
 
-### Зафиксируйте изменения:
+### Зафиксируйте изменения
 
 ```powershell
 # Добавьте все файлы
@@ -229,7 +237,7 @@ git commit -m "feat: add lab-01 report for Ivanov Ivan"
 git push origin lab01-group123-ivanov
 ```
 
-### Создайте Pull Request:
+### Создайте Pull Request
 
 1. Откройте СВОЙ fork на GitHub: `https://github.com/ваш-username/PIS-2026`
 2. Нажмите кнопку **Compare & pull request**
@@ -260,6 +268,7 @@ git push origin lab01-group123-ivanov
 ### Проблема: Забыл сделать fork, уже клонировал brstu/PIS-2026
 
 **Решение:**
+
 ```powershell
 # Удалите неправильный клон
 cd ..
@@ -301,6 +310,7 @@ rm -rf PIS-2026
 1. Убедитесь, что вы клонировали СВОЙ fork, а не brstu/PIS-2026
 2. Проверьте: `git remote -v` - должен быть `origin` с вашим username
 3. Если неправильно:
+
    ```powershell
    git remote set-url origin https://github.com/ваш-username/PIS-2026.git
    ```

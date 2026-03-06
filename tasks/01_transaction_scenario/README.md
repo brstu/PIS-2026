@@ -77,6 +77,7 @@
 **Для чего:** Создание и экспорт диаграмм последовательности
 
 **Установка:**
+
 ```
 1. Ctrl+Shift+X → найти "PlantUML"
 2. Установить расширение от jebbs
@@ -95,6 +96,7 @@
 **Для чего:** Подсветка синтаксиса и автодополнение для `.feature` файлов
 
 **Установка:**
+
 ```
 1. Ctrl+Shift+X → найти "Cucumber"
 2. Установить "Cucumber (Gherkin) Full Support"
@@ -110,6 +112,7 @@
 **Для чего:** Удобная работа с Markdown файлами (отчёты, README)
 
 **Установка:**
+
 ```
 1. Ctrl+Shift+X → найти "Markdown All in One"
 2. Установить расширение от Yu Zhang
@@ -123,9 +126,11 @@
 ### Дополнительные расширения (опционально)
 
 #### GitLens (`eamodio.gitlens`)
+
 Для удобства работы с Git (просмотр истории, авторство кода)
 
 #### Code Spell Checker Russian (`streetsidesoftware.code-spell-checker-russian`)
+
 Проверка орфографии в русских текстах отчётов
 
 ### Альтернативные онлайн-инструменты
@@ -455,15 +460,20 @@ lab-01/
 7. Как изменится сценарий, если добавить функцию "Отложенная оплата"?
 
 ## Полезные ресурсы
+
 ### 🚀 Быстрый старт
+
 - **[QUICK_START.md](QUICK_START.md)** - пошаговая инструкция для новичков (настройка + первые шаги)
+
 ### �️ Настройка инструментов
+
 - **[Требуемые инструменты и настройка VS Code](#требуемые-инструменты-и-настройка-vs-code)** - что установить перед началом работы
 - **[PlantUML плагин для VS Code](https://marketplace.visualstudio.com/items?itemName=jebbs.plantuml)** - для создания диаграмм
 - **[Cucumber плагин для VS Code](https://marketplace.visualstudio.com/items?itemName=alexkrechik.cucumberautocomplete)** - для Gherkin-сценариев
 - **[Java Runtime Environment (JRE)](https://adoptium.net/)** - необходим для PlantUML
 
 ### �📖 Документация и примеры
+
 - **[Макет отчёта](Макет_отчета.md)** - шаблон для заполнения
 - **[Примеры выполнения](examples/)** - готовые артефакты для варианта "Поисково-спасательный отряд Юго-Запад"
   - [use-case.md](examples/use-case.md) - детальное описание сценария
@@ -474,6 +484,7 @@ lab-01/
     - [sequence-error-notification.puml](examples/diagrams/sequence-error-notification.puml)
 
 ### 🔗 Внешние ресурсы
+
 - [PlantUML Sequence Diagram](https://plantuml.com/sequence-diagram)
 - [Cucumber Gherkin Syntax](https://cucumber.io/docs/gherkin/reference/)
 - [Martin Fowler: Sagas](https://martinfowler.com/articles/patterns-of-distributed-systems/saga.html)

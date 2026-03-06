@@ -17,6 +17,7 @@ python -m grpc_tools.protoc \
 ```
 
 **Для Windows (PowerShell):**
+
 ```powershell
 python -m grpc_tools.protoc `
   -I./proto `
@@ -37,6 +38,7 @@ python server/request_service_server.py
 ```
 
 Вывод:
+
 ```
 🚀 gRPC Server started on port 50051
 📡 Listening for requests...
@@ -50,6 +52,7 @@ python client/request_service_client.py
 ```
 
 Вывод:
+
 ```
 === CreateRequest ===
 ✅ Request created: REQ-2024-0004
@@ -94,6 +97,7 @@ python client/request_service_client.py
 ```
 
 Вывод (в real-time):
+
 ```
 === StreamActiveRequests ===
 📡 Streaming active requests (press Ctrl+C to stop)...
@@ -130,6 +134,7 @@ examples/
 ### Проблема: `ModuleNotFoundError: No module named 'generated'`
 
 **Решение:**
+
 ```bash
 # Убедитесь, что вы сгенерировали код из .proto
 python -m grpc_tools.protoc -I./proto --python_out=./generated --grpc_python_out=./generated ./proto/request_service.proto
@@ -141,6 +146,7 @@ ls generated/
 ### Проблема: `grpc._channel._InactiveRpcError: <_InactiveRpcError of RPC that terminated with: status = UNAVAILABLE`
 
 **Решение:** Сервер не запущен. Запустите сервер в отдельном терминале:
+
 ```bash
 python server/request_service_server.py
 ```
@@ -148,6 +154,7 @@ python server/request_service_server.py
 ### Проблема: `SyntaxError` в сгенерированных файлах
 
 **Решение:** Проверьте версию protobuf:
+
 ```bash
 pip install --upgrade protobuf==4.25.3
 ```

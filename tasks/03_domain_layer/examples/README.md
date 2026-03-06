@@ -16,6 +16,7 @@
 ## 🔄 Связь с Lab #2
 
 В Lab #2 мы создали **скелет** проекта с простыми классами:
+
 ```python
 class Request:
     def __init__(self, request_id: str, ...):
@@ -24,6 +25,7 @@ class Request:
 ```
 
 В Lab #3 мы **наполняем** скелет полноценной бизнес-логикой:
+
 ```python
 class Request:
     def assign_group(self, group: Group) -> None:
@@ -132,6 +134,7 @@ examples/
 ### 2. Изучите инварианты
 
 Каждый бизнес-метод проверяет инварианты:
+
 ```python
 def assign_group(self, group: Group) -> None:
     # Инвариант #1
@@ -146,6 +149,7 @@ def assign_group(self, group: Group) -> None:
 ### 3. Изучите доменные события
 
 События создаются при важных изменениях:
+
 ```python
 self._events.append(GroupAssignedToRequest(
     request_id=self._id,

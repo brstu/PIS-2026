@@ -59,6 +59,7 @@ python example_cli.py
 ```
 
 Вывод:
+
 ```
 ============================================================
 Request Service - ПСО «Юго-Запад»
@@ -97,6 +98,7 @@ python main.py
 **Документация API:** http://localhost:8000/docs
 
 **Создать заявку:**
+
 ```bash
 curl -X POST http://localhost:8000/api/requests \
   -H "Content-Type: application/json" \
@@ -108,6 +110,7 @@ curl -X POST http://localhost:8000/api/requests \
 ```
 
 Ответ:
+
 ```json
 {
   "request_id": "REQ-2024-0042"

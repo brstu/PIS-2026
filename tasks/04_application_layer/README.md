@@ -151,6 +151,7 @@ application/
 Создайте **сервис-фасад**, который делегирует вызовы Command/Query Handlers.
 
 **Пример интерфейса** (из Lab #2):
+
 ```python
 class RequestService(ABC):
     @abstractmethod
@@ -249,12 +250,15 @@ lab-04/
 ## Полезные ресурсы
 
 ### 🚀 Примеры кода
+
 - **[examples/](examples/)** - полная реализация для Request Service
 
 ### 📖 Документация
+
 - **[Макет отчёта](Макет_отчета.md)**
 
 ### 🔗 Внешние ресурсы
+
 - [CQRS](https://martinfowler.com/bliki/CQRS.html) - Martin Fowler
 - [Command Query Separation](https://en.wikipedia.org/wiki/Command%E2%80%93query_separation)
 

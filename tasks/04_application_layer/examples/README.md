@@ -85,11 +85,13 @@ dto = handler.handle(query)  # Возвращает RequestDto
 ## Связь с частями системы
 
 ### Domain Layer (Lab #3)
+
 - **Request** - aggregate root
 - **Group**, **Zone** - доменные объекты
 - **RequestStatus** - value object
 
 ### Infrastructure Layer (Lab #5)
+
 - **RequestRepository** - реализация (PostgreSQL, in-memory)
 - **EventBus** - публикация событий
 - **REST Controller** - HTTP endpoints

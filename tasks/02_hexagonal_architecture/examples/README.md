@@ -178,6 +178,7 @@ class CreateRequestUseCase(ABC):
 ```
 
 **Command DTO:**
+
 ```python
 @dataclass
 class CreateRequestCommand:
@@ -188,6 +189,7 @@ class CreateRequestCommand:
 ```
 
 ### Исходящие порты (Outbound Ports)
+
 python
 class RequestRepository(ABC):
     """Исходящий порт для работы с хранилищем"""
@@ -206,6 +208,7 @@ class RequestRepository(ABC):
     def find_by_status(self, status: RequestStatus) -> List[Request]:
         """Найти заявки по статусу"""
         pass
+
 ```
 
 #### NotificationService
@@ -229,6 +232,7 @@ class NotificationService(ABC):
 **Основной поток:**
 
 1. **Координатор** создаёт заявку через REST API:
+
    ```bash
    POST /api/requests
    {
@@ -254,10 +258,14 @@ class NotificationService(ABC):
     "volunteerIds": ["vol-123", "vol-456", "vol-789"]
   }'
 
-# Ответ:
+# Ответ
+
 # {
-#   "requestId": "REQ-2024-0042"
+
+# "requestId": "REQ-2024-0042"
+
 # }
+
 ```
 
 ### Python версия
@@ -288,6 +296,7 @@ python example_cli.py
 ```
 
 **Вывод:**
+
 ```
 ============================================================
 Request Service - ПСО «Юго-Запад»
@@ -322,6 +331,7 @@ python main.py
 **Интерактивная документация API:** http://localhost:8000/docs
 
 **Создать заявку через curl:**
+
 ```bash
 curl -X POST http://localhost:8000/api/requests \
   -H "Content-Type: application/json" \
@@ -333,6 +343,7 @@ curl -X POST http://localhost:8000/api/requests \
 ```
 
 **Ответ:**
+
 ```json
 {
   "request_id": "REQ-2024-0042"

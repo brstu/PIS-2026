@@ -111,13 +111,16 @@ alembic downgrade -1
 ## Связь с другими слоями
 
 ### Domain Layer (Lab #3)
+
 - **Request** - агрегат, который сохраняется
 
 ### Application Layer (Lab #4)
+
 - **CreateRequestHandler** → вызывает `repository.save()`
 - **GetRequestByIdHandler** → вызывает `repository.find_by_id()`
 
 ### Infrastructure Layer (эта лаба)
+
 - **RequestRepositoryImpl** - реализует интерфейс из Application
 - **RequestController** - вызывает handlers
 

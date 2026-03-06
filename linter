@@ -1,0 +1,2 @@
+[43;30m[WARNING][m The 'rev' field of repo 'https://github.com/pre-commit/pre-commit-hooks' appears to be a mutable reference (moving tag / branch).  Mutable references are never updated after first install and are not supported.  See https://pre-commit.com/#using-the-latest-version-for-a-repository for more details.  Hint: `pre-commit autoupdate` often fixes this.
+No hook with id `reults.txt` in stage `pre-commit`
