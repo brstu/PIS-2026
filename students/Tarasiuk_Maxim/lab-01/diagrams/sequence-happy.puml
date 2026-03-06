@@ -1,0 +1,43 @@
+@startuml
+' Описание успешного сценария просмотра доходности портфеля
+actor Инвестор as User
+participant "UI: Панель портфеля" as UI
+participant "Портфельный сервис" as PortfolioService
+participant "Сервис счетов" as AccountService
+participant "Сервис сделок" as TradeService
+participant "Сервис дивидендов" as DividendService
+participant "Сервис рыночных данных" as MarketService
+database "База данных" as DB
+
+User -> UI: Запрос портфеля
+UI -> PortfolioService: getPortfolioSummary(userId)
+PortfolioService -> AccountService: getAccounts(userId)
+AccountService -> DB: SELECT accounts...
+DB --> AccountService: Список счетов
+AccountService --> PortfolioService: Счета пользователя
+
+PortfolioService --> UI: Отображение списка счетов
+UI -> User: Показаны доступные счета
+
+User -> UI: Выбор счёта и периода
+UI -> PortfolioService: calculatePortfolioReturn(accountId, startDate, endDate)
+
+PortfolioService -> MarketService: getCurrentPrices(securities)
+MarketService -> MarketService: Запрос к биржевому API
+MarketService --> PortfolioService: Актуальные котировки
+
+PortfolioService -> TradeService: getTradesHistory(accountId, startDate, endDate)
+TradeService -> DB: SELECT trades...
+DB --> TradeService: История сделок
+TradeService --> PortfolioService: Сделки за период
+
+PortfolioService -> DividendService: getDividends(accountId, startDate, endDate)
+DividendService -> DB: SELECT dividends...
+DB --> DividendService: Дивидендные выплаты
+DividendService --> PortfolioService: Дивиденды за период
+
+PortfolioService -> PortfolioService: Расчёт доходности
+PortfolioService --> UI: Детализированный отчёт
+
+UI -> User: Отображение графика и детализации
+@enduml

@@ -1,0 +1,41 @@
+@startuml
+' Описание сценария с ошибкой получения рыночных данных
+actor Инвестор as User
+participant "UI: Панель портфеля" as UI
+participant "Портфельный сервис" as PortfolioService
+participant "Сервис сделок" as TradeService
+participant "Сервис дивидендов" as DividendService
+participant "Сервис рыночных данных" as MarketService
+participant "Кэш котировок" as Cache
+
+User -> UI: Выбор счёта и периода
+UI -> PortfolioService: calculatePortfolioReturn(accountId, startDate, endDate)
+
+PortfolioService -> MarketService: getCurrentPrices(securities)
+MarketService -> MarketService: Запрос к биржевому API
+MarketService <-- MarketService: ОШИБКА: Сервис недоступен
+
+alt Данные есть в кэше
+    MarketService -> Cache: getCachedPrices(securities)
+    Cache --> MarketService: Цены закрытия (T-1)
+    MarketService --> PortfolioService: Котировки с пометкой "устаревшие"
+else Данных в кэше нет
+    MarketService --> PortfolioService: Ошибка получения данных
+    PortfolioService --> UI: Уведомление о недоступности сервиса
+    UI -> User: "Не удалось получить котировки. Повторить попытку?"
+    User -> UI: Отмена операции
+    UI --> PortfolioService: cancelCalculation()
+    note over PortfolioService: Завершение use-case
+end
+
+PortfolioService -> TradeService: getTradesHistory(accountId, startDate, endDate)
+TradeService --> PortfolioService: История сделок
+
+PortfolioService -> DividendService: getDividends(accountId, startDate, endDate)
+DividendService --> PortfolioService: Дивиденды
+
+PortfolioService -> PortfolioService: Расчёт доходности (с пометкой о погрешности)
+PortfolioService --> UI: Отчёт с предупреждением
+
+UI -> User: Отображение отчёта с жёлтым треугольником
+@enduml
