@@ -1,0 +1,35 @@
+@startuml
+actor Пользователь as User
+participant "Web UI" as UI
+participant "LikeController" as Controller
+participant "LikeService" as Service
+participant "VoteRepository" as VoteRepo
+database "PostgreSQL" as DB
+participant "Logger" as Logger
+
+User -> UI: Нажимает "Лайк"
+UI -> Controller: POST /api/v1/ideas/42/like
+activate Controller
+
+Controller -> Service: like_idea(42, 123)
+activate Service
+
+Service -> VoteRepo: save(123, 42)
+activate VoteRepo
+VoteRepo -> DB: INSERT INTO votes
+DB -x VoteRepo: Connection lost
+deactivate VoteRepo
+
+Service -> Logger: error("DB error")
+activate Logger
+Logger --> Service: logged
+deactivate Logger
+
+Service --> Controller: DatabaseError
+deactivate Service
+
+Controller --> UI: 503 Service Unavailable
+deactivate Controller
+
+UI -> User: "Сервис временно недоступен"
+@enduml

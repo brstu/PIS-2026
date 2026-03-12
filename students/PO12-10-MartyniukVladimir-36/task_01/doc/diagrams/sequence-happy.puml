@@ -1,0 +1,43 @@
+@startuml
+actor Пользователь as User
+participant "Web UI" as UI
+participant "LikeController" as Controller
+participant "LikeService" as Service
+participant "VoteRepository" as VoteRepo
+participant "IdeaRepository" as IdeaRepo
+database "PostgreSQL" as DB
+
+User -> UI: Нажимает "Лайк"
+UI -> Controller: POST /api/v1/ideas/42/like
+activate Controller
+
+Controller -> Service: like_idea(42, 123)
+activate Service
+
+Service -> VoteRepo: exists(123, 42)
+activate VoteRepo
+VoteRepo -> DB: SELECT FROM votes
+DB --> VoteRepo: 0 rows
+VoteRepo --> Service: false
+deactivate VoteRepo
+
+Service -> VoteRepo: save(123, 42)
+activate VoteRepo
+VoteRepo -> DB: INSERT INTO votes
+DB --> VoteRepo: OK
+deactivate VoteRepo
+
+Service -> IdeaRepo: increment_likes(42)
+activate IdeaRepo
+IdeaRepo -> DB: UPDATE ideas
+DB --> IdeaRepo: OK
+deactivate IdeaRepo
+
+Service --> Controller: likes=42
+deactivate Service
+
+Controller --> UI: 200 OK, {"likes": 42}
+deactivate Controller
+
+UI -> User: Показывает "42"
+@enduml

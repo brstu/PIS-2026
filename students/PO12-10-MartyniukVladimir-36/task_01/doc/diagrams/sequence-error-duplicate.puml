@@ -1,0 +1,30 @@
+@startuml
+actor Пользователь as User
+participant "Web UI" as UI
+participant "LikeController" as Controller
+participant "LikeService" as Service
+participant "VoteRepository" as VoteRepo
+database "PostgreSQL" as DB
+
+User -> UI: Нажимает "Лайк"
+UI -> Controller: POST /api/v1/ideas/42/like
+activate Controller
+
+Controller -> Service: like_idea(42, 123)
+activate Service
+
+Service -> VoteRepo: exists(123, 42)
+activate VoteRepo
+VoteRepo -> DB: SELECT FROM votes
+DB --> VoteRepo: 1 row
+VoteRepo --> Service: true
+deactivate VoteRepo
+
+Service --> Controller: AlreadyVotedError
+deactivate Service
+
+Controller --> UI: 409 Conflict
+deactivate Controller
+
+UI -> User: "Вы уже голосовали"
+@enduml
