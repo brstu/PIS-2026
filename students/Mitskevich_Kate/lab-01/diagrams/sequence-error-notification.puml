@@ -1,0 +1,53 @@
+@startuml
+skinparam Style strictuml
+skinparam SequenceMessageAlignment center
+skinparam NoteBackgroundColor #FEFECE
+skinparam NoteBorderColor #A80036
+
+actor "Пользователь" as User
+participant "Mobile UI" as UI
+participant "Finance API" as API
+database "PostgreSQL" as DB
+participant "Logger / Monitoring" as Log
+
+User -> UI: Вводит сумму дохода (1000 руб.)
+UI -> API: POST /api/income {amount: 1000, idempotency_key: "uuid-123"}
+activate API
+
+API -> DB: BEGIN TRANSACTION
+activate DB
+DB --> API: OK
+deactivate DB
+
+note right of API: Шаг 1: Успешная запись лога дохода
+API -> DB: INSERT INTO transactions (income, 1000)
+activate DB
+DB --> API: OK (Record created)
+deactivate DB
+
+note right of API: Шаг 2: Попытка обновить баланс категории
+API -> DB: UPDATE category_balances SET sum = sum + 600 WHERE id = 1
+activate DB
+
+== СБОЙ БАЗЫ ДАННЫХ (Connection Timeout) ==
+
+DB --[#red]> API: ERROR: Database Connection Lost / Timeout
+deactivate DB
+
+note over API: Критический сбой: транзакция не может быть завершена
+
+API -> DB: ROLLBACK TRANSACTION
+note left of DB: Все изменения (включая шаг 1) аннулируются
+
+API -> Log: ERROR: Tx failed for user_id 7. Reason: DB Timeout
+activate Log
+Log --> API: Ack
+deactivate Log
+
+API --[#red]> UI: 503 Service Unavailable {error: "DATABASE_ERROR"}
+deactivate API
+
+UI --[#red]> User: "Ошибка при распределении средств.\nПодход, ещё подход (попробуйте позже)"
+
+note over UI: Кнопка "Повторить" доступна пользователю
+@enduml
