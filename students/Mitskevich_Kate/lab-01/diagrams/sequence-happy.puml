@@ -1,0 +1,54 @@
+@startuml
+skinparam Style strictuml
+skinparam SequenceMessageAlignment center
+
+actor "Пользователь" as User
+participant "Mobile UI" as UI
+participant "Finance API" as API
+database "PostgreSQL" as DB
+participant "Analytics Service" as Analytics
+participant "Notification Service" as Push
+
+User -> UI: Вводит сумму дохода (1000 руб.)
+UI -> API: POST /api/income {amount: 1000, idempotency_key: "uuid"}
+activate API
+
+note right of API: Начало транзакции распределения
+API -> DB: BEGIN TRANSACTION
+
+API -> DB: SELECT categories WHERE user_id = ? (проценты)
+activate DB
+DB --> API: [ {id:1, name: "Еда", pct: 60}, {id:2, name: "Спорт", pct: 40} ]
+deactivate DB
+
+API -> API: Расчет долей (600 руб. и 400 руб.)
+
+API -> DB: INSERT INTO transactions (type: income, total: 1000)
+API -> DB: UPDATE category_balances SET sum = sum + 600 WHERE id = 1
+API -> DB: UPDATE category_balances SET sum = sum + 400 WHERE id = 2
+
+API -> DB: COMMIT TRANSACTION
+activate DB
+DB --> API: OK (Transaction Committed)
+deactivate DB
+
+API --> UI: 201 Created (Успешно распределено)
+deactivate API
+
+UI --> User: Показать уведомление: "1000 руб. зачислено"
+
+== Асинхронные операции (Eventual Consistency) ==
+
+note over API, Analytics: Обновление отчетов происходит в фоне
+API --[#blue]> Analytics: Event: IncomeDistributed {txn_id: 123}
+activate Analytics
+Analytics -> DB: Пересчет агрегатов для графиков
+deactivate Analytics
+
+note over API, Push: Отправка уведомления пользователю
+API --[#blue]> Push: Command: SendPushNotification {user_id: 7, msg: "Баланс обновлен"}
+activate Push
+Push -> User: Push: "Зачислено 600 на Еду и 400 на Спорт"
+deactivate Push
+
+@enduml
