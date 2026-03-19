@@ -1,0 +1,119 @@
+@startuml
+title Use-case: Отметка шага дорожной карты как выполненного (Happy Path)
+
+actor "Джуниор-разработчик" as Junior
+participant "Web UI" as UI
+participant "Roadmap API" as API
+participant "Progress Service" as ProgressSvc
+participant "Resources Service" as ResourcesSvc
+participant "Achievement Service" as AchievementSvc
+database "PostgreSQL" as DB
+
+== Начало сценария ==
+
+Junior -> UI: Открыть текущую дорожную карту
+UI --> Junior: Отобразить список шагов\n(текущий шаг выделен)
+
+Junior -> UI: Нажать "Отметить как выполненный"\nрядом с текущим шагом
+UI -> API: POST /api/roadmaps/{id}/steps/{step_id}/complete
+activate API
+
+note over API #FFAAAA
+  Начало транзакции
+end note
+
+API -> DB: BEGIN TRANSACTION
+activate DB
+
+== Проверка последовательности ==
+
+API -> DB: SELECT step_order, is_completed\nFROM roadmap_steps\nWHERE roadmap_id = ? AND step_id = ?
+DB --> API: order=5, is_completed=false
+
+API -> DB: SELECT MAX(order) as current_position\nFROM roadmap_steps\nWHERE roadmap_id = ? AND is_completed = true
+DB --> API: current_position=4
+
+note over API
+  Проверка: шаг №5 - следующий
+  (предыдущие 4 выполнены)
+end note
+
+== Отметка шага ==
+
+API -> DB: UPDATE roadmap_steps\nSET is_completed = true,\ncompleted_at = NOW()\nWHERE step_id = ?
+DB --> API: OK
+
+API -> ProgressSvc: updateProgress(roadmap_id, user_id)
+activate ProgressSvc
+
+ProgressSvc -> DB: SELECT COUNT(*) as total,\nSUM(CASE WHEN is_completed THEN 1 ELSE 0 END) as completed\nFROM roadmap_steps\nWHERE roadmap_id = ?
+DB --> ProgressSvc: total=20, completed=5
+
+ProgressSvc -> DB: UPDATE user_roadmaps\nSET progress_percent = 25,\nlast_updated = NOW()\nWHERE roadmap_id = ? AND user_id = ?
+note right
+  progress = (5/20)*100 = 25%
+end note
+DB --> ProgressSvc: OK
+
+ProgressSvc --> API: progress_updated
+deactivate ProgressSvc
+
+== Проверка достижений ==
+
+API -> AchievementSvc: checkMilestones(roadmap_id, user_id, completed_steps=5)
+activate AchievementSvc
+
+AchievementSvc -> DB: SELECT milestone_rules\nFROM roadmap_config\nWHERE roadmap_id = ?
+DB --> AchievementSvc: rules: {25%: "badge_beginner"}
+
+AchievementSvc -> DB: INSERT INTO user_achievements\n(user_id, achievement_type, earned_at)
+note right
+  25% прогресса - бейдж "Первые шаги"
+end note
+DB --> AchievementSvc: OK
+
+AchievementSvc --> API: milestone_check_complete
+deactivate AchievementSvc
+
+== Загрузка следующего шага ==
+
+API -> ResourcesSvc: getNextStepWithResources(roadmap_id, current_step=5)
+activate ResourcesSvc
+
+ResourcesSvc -> DB: SELECT * FROM roadmap_steps\nWHERE roadmap_id = ? AND step_order = 6
+DB --> ResourcesSvc: next_step: "CSS Flexbox"
+
+ResourcesSvc -> DB: SELECT * FROM step_resources\nWHERE step_id = ?
+note right
+  Статьи, видео, книги\nпо CSS Flexbox
+end note
+DB --> ResourcesSvc: [3 resource links]
+
+ResourcesSvc --> API: next_step_data + resources
+deactivate ResourcesSvc
+
+API -> DB: COMMIT TRANSACTION
+
+note over API #AAFFAA
+  Транзакция успешно завершена
+  Прогресс обновлен с 20% до 25%
+end note
+
+deactivate DB
+
+API --> UI: 200 OK\n{progress: 25, next_step: {...}, achievements: ["badge_beginner"]}
+deactivate API
+
+UI -> UI: Обновить отображение прогресса
+UI --> Junior: Показать:\n- Поздравление с выполнением\n- Прогресс 25%\n- Карточку следующего шага\n- Ссылки на материалы\n- Бейдж "Первые шаги"
+
+note over Junior
+  Джуниор видит:
+  ✓ Шаг отмечен
+  ✓ Прогресс вырос
+  ✓ Что учить дальше
+  ✓ Полезные ссылки
+  ✓ Новый бейдж
+end note
+
+@enduml

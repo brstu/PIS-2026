@@ -1,0 +1,111 @@
+@startuml
+title Use-case: Отметка шага дорожной карты (Ошибка сохранения прогресса)
+
+actor "Джуниор-разработчик" as Junior
+participant "Web UI" as UI
+participant "Roadmap API" as API
+participant "Progress Service" as ProgressSvc
+participant "Resources Service" as ResourcesSvc
+database "PostgreSQL" as DB
+database "Redis" as Redis
+
+== Начало сценария ==
+
+Junior -> UI: Открыть дорожную карту
+UI --> Junior: Отобразить шаги
+
+Junior -> UI: Нажать "Отметить как выполненный"
+UI -> API: POST /api/roadmaps/{id}/steps/{step_id}/complete
+activate API
+
+note over API #FFAAAA
+  Начало транзакции
+end note
+
+API -> DB: BEGIN TRANSACTION
+activate DB
+
+== Проверка последовательности ==
+
+API -> DB: SELECT step_order, is_completed FROM roadmap_steps\nWHERE roadmap_id = ? AND step_id = ?
+DB --> API: order=5, is_completed=false
+
+API -> DB: SELECT MAX(order) as current_position\nFROM roadmap_steps WHERE roadmap_id = ? AND is_completed = true
+DB --> API: current_position=4
+
+note over API
+  Проверка пройдена - можно отмечать
+end note
+
+== Отметка шага ==
+
+API -> DB: UPDATE roadmap_steps\nSET is_completed = true, completed_at = NOW()\nWHERE step_id = ?
+DB --> API: OK
+
+== ОШИБКА! Не удается обновить прогресс ==
+
+API -> ProgressSvc: updateProgress(roadmap_id, user_id)
+activate ProgressSvc
+
+ProgressSvc -> DB: SELECT COUNT(*) as total,\nSUM(CASE WHEN is_completed THEN 1 ELSE 0 END) as completed\nFROM roadmap_steps WHERE roadmap_id = ?
+DB --> ProgressSvc: total=20, completed=5
+
+note over ProgressSvc #FFAAAA
+  КРИТИЧЕСКАЯ ОШИБКА:
+  Сервис PostgreSQL недоступен
+  Connection timeout
+end note
+
+ProgressSvc --> API: ERROR: database_connection_failed
+deactivate ProgressSvc
+
+note over API #FF8888
+  Обнаружена ошибка обновления прогресса
+  Инициируется ОТКАТ транзакции
+  Шаг должен быть НЕ отмечен
+end note
+
+API -> DB: ROLLBACK TRANSACTION
+note right
+  Откатываем:
+  - UPDATE roadmap_steps
+  (шаг снова не выполнен)
+end note
+
+DB --> API: transaction_rolled_back
+deactivate DB
+
+== Попытка сохранить в кэш (резервный вариант) ==
+
+API -> Redis: SET temp_progress:user:{id}:step:{step_id}\n{completed: true, timestamp: NOW()}
+activate Redis
+note right
+  Сохраняем в Redis как временное хранилище
+  чтобы не потерять данные пользователя
+end note
+Redis --> API: OK
+deactivate Redis
+
+API --> UI: 500 Internal Server Error\n{error: "progress_update_failed",\nmessage: "Не удалось обновить прогресс, но мы сохранили ваш результат. Попробуйте обновить страницу через минуту"}
+
+deactivate API
+
+UI --> Junior: Показать сообщение:\n"⚠️ Прогресс временно не сохранился в базу,\nно мы это запомнили. Попробуйте через минуту."
+
+note over Junior
+  Ситуация:
+  ✗ Шаг отметился в UI
+  ✗ В БД шаг НЕ отмечен (откат)
+  ✓ Данные в Redis сохранены
+  ✓ Пользователь предупрежден
+  Фоновый процесс позже синхронизирует
+end note
+
+note over API, Redis
+  Фоновый job позже:
+  1. Проверит Redis
+  2. Повторит обновление БД
+  3. Удалит временные данные
+end note
+
+@enduml
