@@ -1,0 +1,35 @@
+@startuml
+actor User
+participant "Mobile UI" as UI
+participant "Health API" as API
+database "Database" as DB
+participant "Email Service" as Email
+participant "Analytics Service" as Analytics
+
+== Ошибка при фиксации воды ==
+
+User -> UI: Нажать "Добавить воду"
+UI -> API: POST /water/add (volume)
+activate API
+
+API -> DB: Сохранить запись о воде
+activate DB
+DB --> API: ERROR (DB unavailable)
+deactivate DB
+
+API -> Analytics: Логировать ошибку
+activate Analytics
+Analytics --> API: OK
+deactivate Analytics
+
+API -> Email: Отправить уведомление об ошибке (опционально)
+activate Email
+Email --> API: OK
+deactivate Email
+
+API --> UI: 500 Error, "Не удалось сохранить данные"
+deactivate API
+
+UI --> User: Показать сообщение об ошибке
+
+@enduml

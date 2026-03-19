@@ -1,0 +1,43 @@
+@startuml
+actor User
+participant "Mobile UI" as UI
+participant "Health API" as API
+database "Database" as DB
+participant "Email Service" as Email
+participant "Analytics Service" as Analytics
+
+== Пользователь фиксирует воду ==
+
+User -> UI: Открыть приложение
+UI -> API: GET /water/progress
+activate API
+API -> DB: Получить текущий прогресс
+DB --> API: Прогресс за день
+API --> UI: Прогресс
+deactivate API
+
+User -> UI: Нажать "Добавить воду"
+UI -> API: POST /water/add (volume)
+activate API
+
+API -> DB: Сохранить запись о воде
+activate DB
+DB --> API: OK
+deactivate DB
+
+API -> Analytics: Отправить обновлённые метрики
+activate Analytics
+Analytics --> API: OK
+deactivate Analytics
+
+API -> Email: Отправить уведомление (опционально)
+activate Email
+Email --> API: OK
+deactivate Email
+
+API --> UI: 201 Created, обновлённый прогресс
+deactivate API
+
+UI --> User: Показать подтверждение
+
+@enduml
