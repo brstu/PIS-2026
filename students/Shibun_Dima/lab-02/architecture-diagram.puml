@@ -1,0 +1,133 @@
+@startuml Habit Service - Hexagonal Architecture
+
+!define DOMAIN_COLOR #E8F5E9
+!define APPLICATION_COLOR #E3F2FD
+!define INFRASTRUCTURE_COLOR #FFF9C4
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam rectangle {
+    BackgroundColor<<domain>> DOMAIN_COLOR
+    BorderColor<<domain>> #4CAF50
+    BackgroundColor<<application>> APPLICATION_COLOR
+    BorderColor<<application>> #2196F3
+    BackgroundColor<<infrastructure>> INFRASTRUCTURE_COLOR
+    BorderColor<<infrastructure>> #FFC107
+}
+
+title Гексагональная архитектура: Habit Service (ЗОЖ‑трекер «Пью воду, сплю»)
+
+' ---------------- Infrastructure Layer ----------------
+package "Infrastructure Layer" <<infrastructure>> {
+
+    rectangle "REST API" as REST {
+        component "HabitController" as Controller
+    }
+
+    rectangle "Persistence" as Persistence {
+        component "PostgresWaterRepository" as PgRepo
+    }
+
+    rectangle "Notifications" as Notifications {
+        component "EmailReminderService" as EmailSvc
+    }
+
+    rectangle "Configuration" as Config {
+        component "AppConfig" as ConfigBean
+    }
+}
+
+' ---------------- Application Layer ----------------
+package "Application Layer" <<application>> {
+
+    rectangle "Inbound Ports" as InPorts {
+        interface "LogWaterUseCase" as LogUC
+        interface "GetDailyProgressUseCase" as ProgressUC
+    }
+
+    rectangle "Outbound Ports" as OutPorts {
+        interface "WaterRepository" as RepoPort
+        interface "ReminderService" as ReminderPort
+    }
+
+    rectangle "Service" as Service {
+        component "HabitService" as HabitSvc
+    }
+}
+
+' ---------------- Domain Layer ----------------
+package "Domain Layer" <<domain>> {
+
+    rectangle "Aggregates" as Aggregates {
+        component "Habit" as Habit
+    }
+
+    rectangle "Entities" as Entities {
+        component "WaterEntry" as WaterEntry
+    }
+
+    rectangle "Value Objects" as VOs {
+        component "DailyGoal" as DailyGoal
+        component "Progress" as Progress
+    }
+}
+
+' ---------------- Dependencies ----------------
+
+' Infrastructure → Application
+Controller --> LogUC : <<uses>>
+Controller --> ProgressUC : <<uses>>
+
+PgRepo ..|> RepoPort : <<implements>>
+EmailSvc ..|> ReminderPort : <<implements>>
+
+ConfigBean --> Controller : <<creates>>
+ConfigBean --> PgRepo : <<creates>>
+ConfigBean --> EmailSvc : <<creates>>
+ConfigBean --> HabitSvc : <<creates>>
+
+' Application internal
+HabitSvc ..|> LogUC : <<implements>>
+HabitSvc ..|> ProgressUC : <<implements>>
+
+HabitSvc --> RepoPort : <<depends>>
+HabitSvc --> ReminderPort : <<depends>>
+
+' Application → Domain
+HabitSvc --> Habit : <<uses>>
+HabitSvc --> WaterEntry : <<uses>>
+HabitSvc --> DailyGoal : <<uses>>
+HabitSvc --> Progress : <<uses>>
+
+' Domain relations
+Habit *-- WaterEntry : contains
+Habit --> DailyGoal : goal
+Habit --> Progress : calculates
+
+note right of Habit
+<b>Агрегат: Habit</b>
+----
+• habitId: UUID  
+• userId: UUID  
+• dailyGoal: DailyGoal  
+• entries: List<WaterEntry>  
+----
+<b>Business Rules:</b>
+• Нельзя добавить отрицательный объём  
+• Прогресс = сумма записей за день  
+• Цель фиксируется на сутки  
+end note
+
+legend right
+  |<DOMAIN_COLOR>| <b>Domain Layer</b> |
+  | Чистая бизнес-логика |
+  | Не зависит от фреймворков |
+  |<APPLICATION_COLOR>| <b>Application Layer</b> |
+  | Порты (интерфейсы) |
+  | Сервисы (use-case) |
+  |<INFRASTRUCTURE_COLOR>| <b>Infrastructure Layer</b> |
+  | REST, БД, Email |
+  | Реализации портов |
+endlegend
+
+@enduml
