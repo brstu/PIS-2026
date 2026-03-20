@@ -1,0 +1,35 @@
+@startuml
+skinparam maxMessageSize 150
+actor "Читатель" as User
+participant "Web UI" as UI
+participant "Complaint Service" as CompAPI
+database "PostgreSQL" as DB
+participant "AI Moderation" as Moderation
+participant "RabbitMQ (Broker)" as Broker
+
+User -> UI: Нажать "Отправить жалобу"
+UI -> CompAPI: POST /api/complaints
+activate CompAPI
+
+CompAPI -> DB: INSERT complaint (status: PENDING)
+DB --> CompAPI: complaint_id
+
+CompAPI -> Moderation: POST /analyze {text}
+activate Moderation
+Moderation --x CompAPI: TimeoutException (3000ms)
+deactivate Moderation
+
+note over CompAPI: Перехват ошибки.\nПереход в fallback режим.
+
+CompAPI -> Broker: Publish Event: ModerationRetryQueue {complaint_id}
+activate Broker
+Broker --> CompAPI: ACK
+deactivate Broker
+
+note over DB: Статус остается PENDING
+
+CompAPI --> UI: 202 Accepted, "Принято в обработку с задержкой"
+deactivate CompAPI
+
+UI --> User: Показать: "Жалоба сохранена, проверяем..."
+@enduml

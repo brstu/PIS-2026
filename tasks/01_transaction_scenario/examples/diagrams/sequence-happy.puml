@@ -1,4 +1,4 @@
-@startuml
+@startuml happy
 title Успешный сценарий: Создание заявки и формирование группы
 
 actor "Координатор" as Coord
