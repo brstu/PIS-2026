@@ -1,0 +1,183 @@
+@startuml
+title Сценарий с ошибкой: Таймаут ML-модератора (Anti-spam API недоступен)
+
+actor "Продавец" as Seller
+participant "Web UI" as UI
+participant "API Gateway" as Gateway
+participant "Ad Service" as AdSvc
+participant "Image Store\n(S3/MinIO)" as ImgStore
+database "PostgreSQL" as DB
+participant "ML Moderator\n(Anti-spam API)" as ML
+queue "Event Bus\n(RabbitMQ)" as Bus
+participant "Moderation Retry\nWorker" as RetryWorker
+participant "Notification\nService" as Notify
+
+note over Seller, Notify
+  Шаг 1: Пользователь заполнил форму объявления
+  и нажал "Опубликовать"
+end note
+
+== Транзакция №1: Загрузка фото и сохранение объявления ==
+
+Seller -> UI: Заполняет форму\n(категория, заголовок, цена, описание, 3 фото)
+UI -> UI: Валидация на фронте
+
+Seller -> UI: Нажать "Опубликовать"
+UI -> Gateway: POST /api/ads\nmultipart/form-data
+activate Gateway
+
+Gateway -> Gateway: Аутентификация\nи верификация пользователя
+Gateway -> AdSvc: Пересылка запроса
+activate AdSvc
+
+AdSvc -> AdSvc: Валидация данных\n(цена > 0, заголовок не пуст,\nкатегория существует)
+
+== Параллельная загрузка изображений ==
+
+AdSvc -> ImgStore: upload_image(file1, file2, file3)
+activate ImgStore
+ImgStore --> AdSvc: [url1, url2, url3]
+deactivate ImgStore
+
+note over AdSvc
+  Фото успешно загружены
+  Теперь нужно проверить текст через ML-модератора
+end note
+
+== Шаг 2: Ошибка при обращении к ML-модератору ==
+
+AdSvc -> ML: checkContent(title, description, category)
+activate ML
+
+note over ML #FFAAAA
+  ⚠️ ML-модератор НЕ ДОСТУПЕН
+  Timeout 3 секунды / 503 Service Unavailable
+end note
+
+ML --x AdSvc: TimeoutException / HTTP 503
+deactivate ML
+
+AdSvc -> AdSvc: Перехват исключения
+
+note over AdSvc
+  Система НЕ откатывает транзакцию
+  Фото уже загружены
+  Объявление будет сохранено со статусом PENDING_MODERATION
+end note
+
+AdSvc -> DB: BEGIN TRANSACTION
+activate DB
+
+AdSvc -> DB: INSERT INTO ads\n(id, seller_id, title, price,\n category, description, images,\n status, created_at)\nVALUES ('A-2026-0142', ...)\nstatus = 'PENDING_MODERATION'
+DB --> AdSvc: OK
+
+AdSvc -> DB: INSERT INTO moderation_queue\n(ad_id, reason, priority, created_at)\nVALUES ('A-2026-0142',\n 'ML_TIMEOUT', 'HIGH', NOW())
+DB --> AdSvc: OK
+
+AdSvc -> DB: INSERT INTO outbox\n(event_type='AdPendingModeration',\n payload=..., status='pending')
+DB --> AdSvc: OK
+
+AdSvc -> DB: COMMIT TRANSACTION
+DB --> AdSvc: Committed
+deactivate DB
+
+AdSvc -> Bus: publish(AdPendingModeration,\nad_id='A-2026-0142',\nreason='ML_TIMEOUT')
+activate Bus
+Bus --> AdSvc: ACK
+deactivate Bus
+
+note right of AdSvc #FFFFAA
+  Объявление в статусе PENDING_MODERATION
+  Задача в очереди для повторной проверки модератором
+end note
+
+AdSvc --> Gateway: 202 Accepted\n{ad_id: "A-2026-0142",\nstatus: "PENDING_MODERATION",\nmessage: "Проверка антисписком задерживается. Объявление появится автоматически"}
+deactivate AdSvc
+
+Gateway --> UI: 202 Accepted\n{ad_id, status, message}
+deactivate Gateway
+
+UI --> Seller: Показать уведомление:\n"Объявление отправлено на проверку. Обычно это занимает 5 минут"
+
+note over Seller
+  Продавец получил предупреждение
+  Объявление сохранено, но пока не видно другим пользователям
+end note
+
+== Асинхронная обработка ошибки (Retry через 30 секунд) ==
+
+Bus -> RetryWorker: consume(AdPendingModeration)
+activate RetryWorker
+
+RetryWorker -> RetryWorker: Задержка 30 секунд\n(первая попытка retry к ML)
+
+... 30 секунд спустя ...
+
+RetryWorker -> ML: checkContent(title, description, category)
+activate ML
+
+note over ML #AAFFAA
+  ✅ ML-модератор снова доступен
+  Успешная проверка текста
+end note
+
+ML --> RetryWorker: verdict = "CLEAN"\nconfidence = 0.96\nreason = NULL
+deactivate ML
+
+RetryWorker -> DB: BEGIN TRANSACTION
+activate DB
+
+RetryWorker -> DB: UPDATE ads\nSET status='ACTIVE',\nmoderation_verdict='CLEAN',\nmoderated_at=NOW()\nWHERE id='A-2026-0142'
+DB --> RetryWorker: OK
+
+RetryWorker -> DB: UPDATE moderation_queue\nSET status='PROCESSED',\nresolved_at=NOW()\nWHERE ad_id='A-2026-0142'
+DB --> RetryWorker: OK
+
+RetryWorker -> DB: INSERT INTO search_index_queue\n(ad_id, action, queued_at)\nVALUES ('A-2026-0142', 'INDEX', NOW())
+DB --> RetryWorker: OK
+
+RetryWorker -> DB: UPDATE outbox\nSET status='sent'\nWHERE event_type='AdPendingModeration'\nAND payload->>'ad_id'='A-2026-0142'
+DB --> RetryWorker: OK
+
+RetryWorker -> DB: COMMIT TRANSACTION
+deactivate DB
+
+RetryWorker -> Bus: publish(AdPublished,\nad_id='A-2026-0142',\nseller_id='USER-123')
+activate Bus
+Bus --> RetryWorker: ACK
+deactivate Bus
+
+note over RetryWorker #AAFFAA
+  Объявление успешно проверено
+  Теперь активно и доступно в поиске
+end note
+
+deactivate RetryWorker
+
+== Асинхронная отправка уведомлений продавцу ==
+
+Bus -> NotificationWorker: consume(AdPublished)
+activate NotificationWorker
+
+NotificationWorker -> NotificationWorker: Получить данные продавца\n(email, телефон) по seller_id
+
+NotificationWorker -> Notify: sendEmail(to="seller@example.com",\ntemplate="ad_published",\ndata={ad_id: "A-2026-0142",\ntitle: "iPhone 13",\nurl: "/ads/A-2026-0142"})
+activate Notify
+
+Notify -> Notify: Формирование и отправка\nписьма через Email-провайдера
+Notify --> NotificationWorker: Status: sent\nMessage-ID: msg-789
+deactivate Notify
+
+NotificationWorker -> DB: INSERT INTO notification_log\n(ad_id, recipient, type, status, sent_at)\nVALUES ('A-2026-0142',\n'seller@example.com', 'email', 'delivered', NOW())
+activate DB
+DB --> NotificationWorker: OK
+deactivate DB
+
+note over NotificationWorker #AAFFAA
+  Email успешно отправлен продавцу
+  Продавец знает, что объявление опубликовано
+end note
+
+deactivate NotificationWorker
+
+@enduml

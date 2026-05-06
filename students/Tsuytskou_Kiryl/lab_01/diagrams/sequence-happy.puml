@@ -1,0 +1,120 @@
+@startuml
+title Успешный сценарий: Публикация объявления
+
+actor "Продавец" as Seller
+participant "Web UI" as UI
+participant "API Gateway" as Gateway
+participant "Ad Service" as AdSvc
+participant "ML Moderator" as ML
+participant "Image Store\n(S3/MinIO)" as ImgStore
+database "PostgreSQL" as DB
+queue "Event Bus\n(RabbitMQ)" as Bus
+participant "Search Worker" as SearchWorker
+participant "Notification\nWorker" as NotifyWorker
+participant "Email/Push\nService" as Notify
+
+== Транзакция №1: Создание объявления ==
+
+Seller -> UI: Заполняет форму объявления\n(категория, заголовок, цена, описание)
+activate UI
+
+UI -> UI: Валидация на фронте\n(цена > 0, заголовок не пуст)
+
+Seller -> UI: Выбирает 3 фото для загрузки
+UI -> UI: Сжимает фото перед отправкой
+
+UI -> Gateway: POST /api/ads\nmultipart/form-data\n{title: "iPhone 13",\nprice: 45000,\ncategory: "Электроника",\nimages: [file1, file2, file3]}
+activate Gateway
+
+Gateway -> Gateway: Аутентификация\nи верификация пользователя
+Gateway -> AdSvc: Пересылка запроса
+activate AdSvc
+
+AdSvc -> AdSvc: Валидация данных\n(цена, категория, длина заголовка)
+
+== Параллельная загрузка изображений ==
+
+AdSvc -> ImgStore: upload_image(file1)
+activate ImgStore
+ImgStore --> AdSvc: https://cdn.ads.by/img/abc123.jpg
+deactivate ImgStore
+
+AdSvc -> ImgStore: upload_image(file2)
+activate ImgStore
+ImgStore --> AdSvc: https://cdn.ads.by/img/def456.jpg
+deactivate ImgStore
+
+AdSvc -> ImgStore: upload_image(file3)
+activate ImgStore
+ImgStore --> AdSvc: https://cdn.ads.by/img/ghi789.jpg
+deactivate ImgStore
+
+== Синхронная модерация (ML) ==
+
+AdSvc -> ML: checkContent(title, description,\ncategory)
+activate ML
+ML -> ML: Анализ на спам,\nзапрещённые слова,\nмошенничество
+ML --> AdSvc: verdict = "CLEAN"\nconfidence = 0.97
+deactivate ML
+
+AdSvc -> DB: BEGIN TRANSACTION
+activate DB
+
+AdSvc -> DB: INSERT INTO ads\n(id, seller_id, title, price,\n category, description, status,\n images, created_at)\nVALUES ('A-2026-0142', ...)\nstatus = 'ACTIVE'
+DB --> AdSvc: OK
+
+AdSvc -> DB: INSERT INTO search_index_queue\n(ad_id, action, queued_at)\nVALUES ('A-2026-0142', 'INDEX', NOW())
+DB --> AdSvc: OK
+
+AdSvc -> DB: INSERT INTO outbox\n(event_type='AdPublished',\n payload=..., status='pending')
+DB --> AdSvc: OK
+
+AdSvc -> DB: COMMIT TRANSACTION
+DB --> AdSvc: Committed
+deactivate DB
+
+AdSvc --> Gateway: 201 Created\n{ad_id: "A-2026-0142",\nstatus: "ACTIVE",\nurl: "/ads/A-2026-0142"}
+deactivate AdSvc
+
+Gateway --> UI: 201 Created\n{ad_id, status, url}
+deactivate Gateway
+
+UI --> Seller: Показывает карточку\n"Объявление опубликовано!"
+deactivate UI
+
+== Асинхронная индексация в поиске ==
+
+Bus -> SearchWorker: consume(AdPublished)
+activate SearchWorker
+
+SearchWorker -> SearchWorker: Формирование\nElasticsearch документа
+
+SearchWorker -> SearchWorker: Индексация\n(шард по категории)
+
+SearchWorker -> DB: UPDATE outbox\nSET status='sent'\nWHERE event_type='AdPublished'
+activate DB
+DB --> SearchWorker: OK
+deactivate DB
+
+deactivate SearchWorker
+
+== Асинхронная отправка уведомлений ==
+
+Bus -> NotifyWorker: consume(AdPublished)
+activate NotifyWorker
+
+NotifyWorker -> NotifyWorker: Определение каналов\n(email для продавца)
+
+NotifyWorker -> Notify: sendEmail(seller@email.com,\n"Ваше объявление A-2026-0142 опубликовано!")
+activate Notify
+Notify --> NotifyWorker: Message-ID: msg-456\nStatus: queued
+deactivate Notify
+
+NotifyWorker -> DB: INSERT INTO notification_log\n(ad_id, recipient, type, status)\nVALUES ('A-2026-0142', ...)
+activate DB
+DB --> NotifyWorker: OK
+deactivate DB
+
+deactivate NotifyWorker
+
+@enduml
